@@ -1,0 +1,39 @@
+{
+  "name": "Stompbox",
+  "vendor": "jacob-sabella",
+  "uid": "StBx",
+  "version": 100,
+  "so": "stompbox.so",
+  "effect": true,
+  "targets": [
+    "armv7",
+    "aarch64"
+  ],
+  "build": {
+    "sources": [
+      "src/rack.cpp",
+      "src/host.cpp",
+      "src/builtins.cpp"
+    ],
+    "cflags": [
+      "-Isrc",
+      "-std=gnu++17",
+      "-Wno-unused-variable",
+      "-Wno-unused-but-set-variable",
+      "-Wno-sign-compare",
+      "-Wno-unused-function",
+      "-Wno-misleading-indentation",
+      "-Wno-maybe-uninitialized"
+    ],
+    "libs": [
+      "-lm",
+      "-lpthread"
+    ],
+    "cflags_arm": [
+      "-mfpu=neon-vfpv4"
+    ]
+  },
+  "defines": {
+    "HAS_DISPLAY_REV": 1
+  }
+}

@@ -1,0 +1,2075 @@
+{
+ "name": "Stompbox",
+ "sections": [
+  {
+   "key": "gate",
+   "name": "Gate"
+  },
+  {
+   "key": "comp",
+   "name": "Comp"
+  },
+  {
+   "key": "wah",
+   "name": "Wah"
+  },
+  {
+   "key": "pedal",
+   "name": "Pedals",
+   "slots": [
+    [
+     "pedal1",
+     "Pedal 1"
+    ],
+    [
+     "pedal2",
+     "Pedal 2"
+    ],
+    [
+     "pedal3",
+     "Pedal 3"
+    ]
+   ]
+  },
+  {
+   "key": "amp",
+   "name": "Amp"
+  },
+  {
+   "key": "tone",
+   "name": "Tone Stack"
+  },
+  {
+   "key": "power",
+   "name": "Power Amp"
+  },
+  {
+   "key": "cab",
+   "name": "Cabinet"
+  },
+  {
+   "key": "mod",
+   "name": "Mod",
+   "stereo": true
+  },
+  {
+   "key": "delay",
+   "name": "Delay",
+   "stereo": true
+  },
+  {
+   "key": "reverb",
+   "name": "Reverb",
+   "stereo": true
+  },
+  {
+   "key": "eq",
+   "name": "EQ",
+   "stereo": true
+  }
+ ],
+ "defaults": {
+  "gate": {
+   "model": "Noise Gate",
+   "on": 1
+  },
+  "pedal1": {
+   "model": "Overdrive 1"
+  },
+  "pedal2": {
+   "model": "Distortion 1"
+  },
+  "pedal3": {
+   "model": "Fuzz 1"
+  },
+  "amp": {
+   "model": "Lead Stack",
+   "on": 1
+  },
+  "tone": {
+   "model": "Neutral",
+   "on": 1
+  },
+  "cab": {
+   "model": "4x12",
+   "on": 1
+  },
+  "reverb": {
+   "model": "Room Reverb"
+  },
+  "delay": {
+   "model": "Digital Delay"
+  },
+  "mod": {
+   "model": "Chorus"
+  },
+  "eq": {
+   "model": "3-Band EQ"
+  },
+  "comp": {
+   "model": "Compressor"
+  },
+  "wah": {
+   "model": "Auto Wah"
+  },
+  "power": {
+   "model": "Push-Pull EL34"
+  }
+ },
+ "tabs": [
+  {
+   "name": "INPUT",
+   "rows": [
+    [
+     "gate"
+    ],
+    [
+     "comp"
+    ],
+    [
+     "wah"
+    ]
+   ]
+  },
+  {
+   "name": "PEDALS",
+   "rows": [
+    [
+     "pedal1"
+    ],
+    [
+     "pedal2"
+    ],
+    [
+     "pedal3"
+    ]
+   ]
+  },
+  {
+   "name": "AMP",
+   "rows": [
+    [
+     "amp"
+    ],
+    [
+     "tone",
+     "power"
+    ],
+    [
+     "cab"
+    ]
+   ]
+  },
+  {
+   "name": "FX",
+   "rows": [
+    [
+     "mod"
+    ],
+    [
+     "delay"
+    ],
+    [
+     "reverb"
+    ]
+   ]
+  },
+  {
+   "name": "EQ",
+   "rows": [
+    [
+     "eq"
+    ],
+    [
+     "rack"
+    ]
+   ]
+  }
+ ],
+ "models": [
+  {
+   "id": "gate",
+   "name": "Noise Gate",
+   "section": "gate",
+   "builtin": "gate",
+   "knobs": 4
+  },
+  {
+   "id": "abgate",
+   "name": "Hold Gate",
+   "section": "gate",
+   "gx": "plugins/abgate.cc"
+  },
+  {
+   "id": "compressor",
+   "name": "Compressor",
+   "section": "comp",
+   "gx": "faust-generated/compressor.cc"
+  },
+  {
+   "id": "expander",
+   "name": "Expander",
+   "section": "comp",
+   "gx": "faust-generated/expander.cc",
+   "names": {
+    "expander.attack": "Attack",
+    "expander.knee": "Knee",
+    "expander.ratio": "Ratio",
+    "expander.release": "Release",
+    "expander.threshold": "Threshold"
+   }
+  },
+  {
+   "id": "sustainer",
+   "name": "Sustainer",
+   "section": "comp",
+   "gx": "plugins/generated/susta.cc"
+  },
+  {
+   "id": "swell",
+   "name": "Volume Swell",
+   "section": "comp",
+   "lv2": "GxSlowGear.lv2",
+   "names": {
+    "TRESHOLD": "Threshold",
+    "UPTIME": "Rise",
+    "DOWNTIME": "Fall"
+   }
+  },
+  {
+   "id": "autowah",
+   "name": "Auto Wah",
+   "section": "wah",
+   "gx": "faust-generated/autowah.cc",
+   "names": {
+    "crybaby.level": "Level",
+    "crybaby.wah": "Wah",
+    "crybaby.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "wah_manual",
+   "name": "Wah Pedal",
+   "section": "wah",
+   "gx": "faust-generated/crybaby.cc",
+   "names": {
+    "crybaby.level": "Level",
+    "crybaby.wah": "Pedal",
+    "crybaby.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "voxwah",
+   "name": "Wah 1",
+   "section": "wah",
+   "gx": "faust-generated/voxwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "rolwah",
+   "name": "Wah 2",
+   "section": "wah",
+   "gx": "faust-generated/rolwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "dallaswah",
+   "name": "Wah 3",
+   "section": "wah",
+   "gx": "faust-generated/dallaswah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "foxwah",
+   "name": "Wah 4",
+   "section": "wah",
+   "gx": "faust-generated/foxwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "jenwah",
+   "name": "Wah 5",
+   "section": "wah",
+   "gx": "faust-generated/jenwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "maestrowah",
+   "name": "Wah 6",
+   "section": "wah",
+   "gx": "faust-generated/maestrowah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "selwah",
+   "name": "Wah 7",
+   "section": "wah",
+   "gx": "faust-generated/selwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "colwah",
+   "name": "Wah 8",
+   "section": "wah",
+   "gx": "faust-generated/colwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "colbwah",
+   "name": "Bass Wah 1",
+   "section": "wah",
+   "gx": "faust-generated/colbwah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "jenbasswah",
+   "name": "Bass Wah 2",
+   "section": "wah",
+   "gx": "faust-generated/jenbasswah.cc",
+   "show": [
+    "wah.Wah",
+    "wah.mode",
+    "wah.freq",
+    "wah.wet_dry"
+   ],
+   "names": {
+    "wah.Wah": "Pedal",
+    "wah.freq": "Auto Freq",
+    "wah.mode": "Mode",
+    "wah.wet_dry": "Mix"
+   }
+  },
+  {
+   "id": "wah_gcb",
+   "name": "Wah 9",
+   "section": "wah",
+   "gx": "plugins/generated/gcb_95.cc",
+   "names": {
+    "GCB_95.Volume": "Volume",
+    "GCB_95.hotpotz": "Pedal"
+   }
+  },
+  {
+   "id": "fuzzwah",
+   "name": "Fuzz Wah",
+   "section": "wah",
+   "gx": "plugins/generated/rolandwah.cc",
+   "names": {
+    "rolandwah.mode": "Mode",
+    "rolandwah.lfobpm": "Auto Freq"
+   }
+  },
+  {
+   "id": "envfilter",
+   "name": "Envelope Filter",
+   "section": "wah",
+   "lv2": "GxQuack.lv2"
+  },
+  {
+   "id": "cleanboost",
+   "name": "Clean Boost",
+   "section": "pedal",
+   "gx": "plugins/generated/lpbboost.cc"
+  },
+  {
+   "id": "trebleboost",
+   "name": "Treble Booster",
+   "section": "pedal",
+   "gx": "plugins/generated/rangem.cc"
+  },
+  {
+   "id": "bassboost",
+   "name": "Bass Booster",
+   "section": "pedal",
+   "gx": "plugins/generated/mole.cc"
+  },
+  {
+   "id": "bufferboost",
+   "name": "Buffer Boost",
+   "section": "pedal",
+   "gx": "plugins/generated/buffb.cc"
+  },
+  {
+   "id": "brightener",
+   "name": "Brightener",
+   "section": "pedal",
+   "gx": "plugins/generated/hfb.cc"
+  },
+  {
+   "id": "trbuff",
+   "name": "Transistor Buffer",
+   "section": "pedal",
+   "gx": "faust-generated/trbuff.cc"
+  },
+  {
+   "id": "highboost",
+   "name": "Treble Lift",
+   "section": "pedal",
+   "gx": "faust-generated/highbooster.cc",
+   "names": {
+    "highbooster.Level": "Level"
+   }
+  },
+  {
+   "id": "lowboost",
+   "name": "Low Lift",
+   "section": "pedal",
+   "gx": "faust-generated/bassbooster.cc",
+   "names": {
+    "bassbooster.Level": "Level"
+   }
+  },
+  {
+   "id": "microboost",
+   "name": "Micro Boost",
+   "section": "pedal",
+   "lv2": "GxMicroAmp.lv2"
+  },
+  {
+   "id": "tubeboost",
+   "name": "Tube Boost",
+   "section": "pedal",
+   "lv2": "GxBoobTube.lv2"
+  },
+  {
+   "id": "tubeboost2",
+   "name": "Tube Boost 2",
+   "section": "pedal",
+   "lv2": "GxEpic.lv2"
+  },
+  {
+   "id": "od1",
+   "name": "Overdrive 1",
+   "section": "pedal",
+   "gx": "plugins/generated/ts9sim.cc"
+  },
+  {
+   "id": "od2",
+   "name": "Overdrive 2",
+   "section": "pedal",
+   "lv2": "GxSD1.lv2"
+  },
+  {
+   "id": "od3",
+   "name": "Lead Overdrive",
+   "section": "pedal",
+   "lv2": "GxSD2Lead.lv2"
+  },
+  {
+   "id": "od4",
+   "name": "Overdrive 3",
+   "section": "pedal",
+   "gx": "plugins/generated/coverd.cc"
+  },
+  {
+   "id": "od5",
+   "name": "Overdrive 4",
+   "section": "pedal",
+   "gx": "faust-generated/overdrive.cc"
+  },
+  {
+   "id": "od6",
+   "name": "Smooth Drive",
+   "section": "pedal",
+   "lv2": "GxLiquidDrive.lv2"
+  },
+  {
+   "id": "od7",
+   "name": "Overdrive 5",
+   "section": "pedal",
+   "lv2": "GxEternity.lv2"
+  },
+  {
+   "id": "od8",
+   "name": "Overdrive 6",
+   "section": "pedal",
+   "lv2": "GxSloopyBlue.lv2"
+  },
+  {
+   "id": "od9",
+   "name": "Overdrive 7",
+   "section": "pedal",
+   "lv2": "GxLuna.lv2"
+  },
+  {
+   "id": "od10",
+   "name": "Transparent Drive",
+   "section": "pedal",
+   "lv2": "GxTimRay.lv2"
+  },
+  {
+   "id": "od11",
+   "name": "Overdrive 8",
+   "section": "pedal",
+   "lv2": "GxDOP250.lv2"
+  },
+  {
+   "id": "td1",
+   "name": "Tube Drive 1",
+   "section": "pedal",
+   "lv2": "GxClubDrive.lv2"
+  },
+  {
+   "id": "td2",
+   "name": "Tube Drive 2",
+   "section": "pedal",
+   "lv2": "GxBaJaTubeDriver.lv2"
+  },
+  {
+   "id": "td3",
+   "name": "Tube Drive 3",
+   "section": "pedal",
+   "lv2": "GxShakaTube.lv2"
+  },
+  {
+   "id": "td4",
+   "name": "Tube Drive 4",
+   "section": "pedal",
+   "lv2": "GxValveCaster.lv2"
+  },
+  {
+   "id": "td5",
+   "name": "Tube Drive 5",
+   "section": "pedal",
+   "lv2": "GxHotBox.lv2"
+  },
+  {
+   "id": "td6",
+   "name": "Tube Drive 6",
+   "section": "pedal",
+   "lv2": "GxBottleRocket.lv2"
+  },
+  {
+   "id": "dist1",
+   "name": "Op-Amp Distortion",
+   "section": "pedal",
+   "gx": "plugins/generated/aclipper.cc"
+  },
+  {
+   "id": "dist2",
+   "name": "Distortion 1",
+   "section": "pedal",
+   "gx": "plugins/generated/bossds1.cc"
+  },
+  {
+   "id": "dist3",
+   "name": "Distortion 2",
+   "section": "pedal",
+   "gx": "plugins/generated/mxrdist.cc"
+  },
+  {
+   "id": "dist4",
+   "name": "Distortion 3",
+   "section": "pedal",
+   "gx": "plugins/generated/eldist.cc"
+  },
+  {
+   "id": "dist5",
+   "name": "Distortion 4",
+   "section": "pedal",
+   "lv2": "GxGuvnor.lv2"
+  },
+  {
+   "id": "dist6",
+   "name": "Distortion 5",
+   "section": "pedal",
+   "gx": "plugins/generated/ruin.cc"
+  },
+  {
+   "id": "dist7",
+   "name": "Distortion 6",
+   "section": "pedal",
+   "gx": "plugins/generated/scream.cc"
+  },
+  {
+   "id": "tubedist",
+   "name": "Tube Distortion",
+   "section": "pedal",
+   "lv2": "GxTubeDistortion.lv2"
+  },
+  {
+   "id": "waveshaper",
+   "name": "Wave Shaper",
+   "section": "pedal",
+   "gx": "faust-generated/distortion2.cc"
+  },
+  {
+   "id": "thick",
+   "name": "Thick Distortion",
+   "section": "pedal",
+   "gx": "faust-generated/thick_distortion.cc"
+  },
+  {
+   "id": "saturator",
+   "name": "Saturator",
+   "section": "pedal",
+   "lv2": "GxSaturator.lv2"
+  },
+  {
+   "id": "bitcrush",
+   "name": "Bit Crusher",
+   "section": "pedal",
+   "gx": "faust-generated/bitdowner.cc"
+  },
+  {
+   "id": "fz1",
+   "name": "Fuzz 1",
+   "section": "pedal",
+   "gx": "faust-generated/fuzzface.cc"
+  },
+  {
+   "id": "fz2",
+   "name": "Fuzz 2",
+   "section": "pedal",
+   "gx": "plugins/generated/fuzzfacefm.cc"
+  },
+  {
+   "id": "fz3",
+   "name": "Fuzz 3",
+   "section": "pedal",
+   "gx": "plugins/generated/fuzzfacerm.cc"
+  },
+  {
+   "id": "fz4",
+   "name": "Fuzz 4",
+   "section": "pedal",
+   "gx": "plugins/generated/axface.cc"
+  },
+  {
+   "id": "fz5",
+   "name": "Fuzz 5",
+   "section": "pedal",
+   "lv2": "GxAxisFace.lv2"
+  },
+  {
+   "id": "fz6",
+   "name": "Fuzz 6",
+   "section": "pedal",
+   "lv2": "GxSunFace.lv2"
+  },
+  {
+   "id": "fz7",
+   "name": "Fuzz 7",
+   "section": "pedal",
+   "gx": "plugins/generated/foxeylady.cc"
+  },
+  {
+   "id": "sfz1",
+   "name": "Sustain Fuzz 1",
+   "section": "pedal",
+   "gx": "plugins/generated/bmp.cc"
+  },
+  {
+   "id": "sfz2",
+   "name": "Sustain Fuzz 2",
+   "section": "pedal",
+   "gx": "plugins/generated/muff.cc"
+  },
+  {
+   "id": "fz8",
+   "name": "Fuzz 8",
+   "section": "pedal",
+   "gx": "plugins/generated/hornet.cc"
+  },
+  {
+   "id": "fz9",
+   "name": "Gated Fuzz",
+   "section": "pedal",
+   "gx": "plugins/generated/ffreak.cc"
+  },
+  {
+   "id": "fz10",
+   "name": "Fuzz 9",
+   "section": "pedal",
+   "gx": "plugins/generated/fumaster.cc"
+  },
+  {
+   "id": "fuzzdrive",
+   "name": "Fuzz Drive",
+   "section": "pedal",
+   "gx": "plugins/generated/fuzzdrive.cc"
+  },
+  {
+   "id": "buzz",
+   "name": "Buzz Fuzz",
+   "section": "pedal",
+   "gx": "plugins/generated/buzz.cc"
+  },
+  {
+   "id": "fz11",
+   "name": "Fuzz 10",
+   "section": "pedal",
+   "gx": "plugins/generated/hogsfoot.cc"
+  },
+  {
+   "id": "fz12",
+   "name": "Fuzz 11",
+   "section": "pedal",
+   "gx": "plugins/generated/astrofuzz.cc"
+  },
+  {
+   "id": "fz13",
+   "name": "Tone Blend Fuzz",
+   "section": "pedal",
+   "gx": "plugins/generated/cstb.cc"
+  },
+  {
+   "id": "fz14",
+   "name": "Fuzz 12",
+   "section": "pedal",
+   "lv2": "GxKnightFuzz.lv2"
+  },
+  {
+   "id": "fz15",
+   "name": "Fuzz 13",
+   "section": "pedal",
+   "lv2": "GxVintageFuzzMaster.lv2"
+  },
+  {
+   "id": "fz16",
+   "name": "Fuzz 14",
+   "section": "pedal",
+   "lv2": "GxVoodoFuzz.lv2"
+  },
+  {
+   "id": "fz17",
+   "name": "Fuzz 15",
+   "section": "pedal",
+   "lv2": "GxSuppaToneBender.lv2"
+  },
+  {
+   "id": "fz18",
+   "name": "Fuzz 16",
+   "section": "pedal",
+   "lv2": "GxHyperion.lv2"
+  },
+  {
+   "id": "vfz1",
+   "name": "Vintage Fuzz 1",
+   "section": "pedal",
+   "lv2": "GxFz1b.lv2"
+  },
+  {
+   "id": "vfz2",
+   "name": "Vintage Fuzz 2",
+   "section": "pedal",
+   "lv2": "GxFz1s.lv2"
+  },
+  {
+   "id": "ofz1",
+   "name": "Octave Fuzz 1",
+   "section": "pedal",
+   "lv2": "GxSuperFuzz.lv2",
+   "names": {
+    "EXPANDER": "Fuzz",
+    "TRIM": "Harmonics",
+    "BALANCE": "Balance",
+    "TONE": "Tone Mod"
+   }
+  },
+  {
+   "id": "ofz2",
+   "name": "Octave Fuzz 2",
+   "section": "pedal",
+   "lv2": "GxToneMachine.lv2"
+  },
+  {
+   "id": "bassfuzz",
+   "name": "Bass Fuzz",
+   "section": "pedal",
+   "gx": "plugins/generated/bfuzz.cc"
+  },
+  {
+   "id": "bassdrive",
+   "name": "Bass Drive",
+   "section": "pedal",
+   "gx": "plugins/generated/bassboom.cc",
+   "names": {
+    "bboom.Drive": "Drive",
+    "bboom.Gain": "Gain"
+   }
+  },
+  {
+   "id": "gxamp",
+   "name": "12AX7",
+   "section": "amp",
+   "gx": "faust-generated/gxamp.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp9",
+   "name": "12AX7 Feedback",
+   "section": "amp",
+   "gx": "faust-generated/gxamp9.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp5",
+   "name": "12AX7 / 6V6 Master",
+   "section": "amp",
+   "gx": "faust-generated/gxamp5.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp7",
+   "name": "12AX7 / 6V6 Push-Pull",
+   "section": "amp",
+   "gx": "faust-generated/gxamp7.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp3",
+   "name": "12AU7",
+   "section": "amp",
+   "gx": "faust-generated/gxamp3.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp11",
+   "name": "12AU7 Feedback",
+   "section": "amp",
+   "gx": "faust-generated/gxamp11.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp4",
+   "name": "12AU7 / 6V6 Master",
+   "section": "amp",
+   "gx": "faust-generated/gxamp4.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp8",
+   "name": "12AU7 / 6V6 Push-Pull",
+   "section": "amp",
+   "gx": "faust-generated/gxamp8.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp14",
+   "name": "12AT7",
+   "section": "amp",
+   "gx": "faust-generated/gxamp14.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp17",
+   "name": "12AT7 Feedback",
+   "section": "amp",
+   "gx": "faust-generated/gxamp17.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp15",
+   "name": "12AT7 / 6V6 Master",
+   "section": "amp",
+   "gx": "faust-generated/gxamp15.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp16",
+   "name": "12AT7 / 6V6 Push-Pull",
+   "section": "amp",
+   "gx": "faust-generated/gxamp16.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp10",
+   "name": "6DJ8",
+   "section": "amp",
+   "gx": "faust-generated/gxamp10.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp13",
+   "name": "6DJ8 Feedback",
+   "section": "amp",
+   "gx": "faust-generated/gxamp13.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp12",
+   "name": "6DJ8 / 6V6 Master",
+   "section": "amp",
+   "gx": "faust-generated/gxamp12.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp6",
+   "name": "6DJ8 / 6V6 Push-Pull",
+   "section": "amp",
+   "gx": "faust-generated/gxamp6.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp2",
+   "name": "6V6",
+   "section": "amp",
+   "gx": "faust-generated/gxamp2.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "gxamp18",
+   "name": "6C16",
+   "section": "amp",
+   "gx": "faust-generated/gxamp18.cc",
+   "show": [
+    "amp2.stage1.Pregain",
+    "amp2.stage2.gain1",
+    "gxdistortion.drive",
+    "gxdistortion.wet_dry",
+    "amp.highgain"
+   ],
+   "names": {
+    "amp2.stage1.Pregain": "Pregain",
+    "amp2.stage2.gain1": "Gain",
+    "gxdistortion.drive": "Drive",
+    "gxdistortion.wet_dry": "Drive Mix",
+    "amp.highgain": "Deep"
+   }
+  },
+  {
+   "id": "combo1",
+   "name": "Combo Amp 1",
+   "section": "amp",
+   "lv2": "GxBlueAmp.lv2"
+  },
+  {
+   "id": "combo2",
+   "name": "Combo Amp 2",
+   "section": "amp",
+   "lv2": "GxCreamMachine.lv2"
+  },
+  {
+   "id": "combo3",
+   "name": "Combo Amp 3",
+   "section": "amp",
+   "lv2": "GxSupersonic.lv2"
+  },
+  {
+   "id": "combo4",
+   "name": "Combo Amp 4",
+   "section": "amp",
+   "lv2": "GxUVox720k.lv2",
+   "names": {
+    "REVERBLEVEL": "Reverb Level"
+   }
+  },
+  {
+   "id": "combo5",
+   "name": "Combo Amp 5",
+   "section": "amp",
+   "lv2": "GxVmk2.lv2",
+   "names": {
+    "MRBSELECT": "MRB Select",
+    "REVERBLEVEL": "Reverb Level"
+   }
+  },
+  {
+   "id": "stack",
+   "name": "Lead Stack",
+   "section": "amp",
+   "lv2": "GxPlexi.lv2",
+   "names": {
+    "PRESENSE": "Presence"
+   }
+  },
+  {
+   "id": "bassstack",
+   "name": "Bass Stack",
+   "section": "amp",
+   "lv2": "GxSVT.lv2",
+   "names": {
+    "LOWSWITCH": "Low",
+    "MIDSWITCH": "Mid Freq",
+    "HIGHSWITCH": "Bright",
+    "CABSWITCH": "Cab"
+   }
+  },
+  {
+   "id": "basspre",
+   "name": "Bass Preamp",
+   "section": "amp",
+   "lv2": "GxVBassPreAmp.lv2"
+  },
+  {
+   "id": "ts_default",
+   "name": "Neutral",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_default.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_bassman",
+   "name": "Tone Stack 1",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_bassman.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_twin",
+   "name": "Tone Stack 2",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_twin.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_princeton",
+   "name": "Tone Stack 3",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_princeton.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_jcm800",
+   "name": "Tone Stack 4",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_jcm800.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_jcm2000",
+   "name": "Tone Stack 5",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_jcm2000.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_jtm45",
+   "name": "Tone Stack 6",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_jtm45.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_mlead",
+   "name": "Tone Stack 7",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_mlead.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_m2199",
+   "name": "Tone Stack 8",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_m2199.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_ac30",
+   "name": "Tone Stack 9",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_ac30.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_ac15",
+   "name": "Tone Stack 10",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_ac15.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_soldano",
+   "name": "Tone Stack 11",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_soldano.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_mesa",
+   "name": "Tone Stack 12",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_mesa.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_peavey",
+   "name": "Tone Stack 13",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_peavey.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_ibanez",
+   "name": "Tone Stack 14",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_ibanez.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_roland",
+   "name": "Tone Stack 15",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_roland.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_ampeg",
+   "name": "Tone Stack 16",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_ampeg.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_ampeg_rev",
+   "name": "Tone Stack 17",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_ampeg_rev.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_sovtek",
+   "name": "Tone Stack 18",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_sovtek.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_bogner",
+   "name": "Tone Stack 19",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_bogner.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_fender_default",
+   "name": "Tone Stack 20",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_fender_default.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_fender_blues",
+   "name": "Tone Stack 21",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_fender_blues.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_fender_deville",
+   "name": "Tone Stack 22",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_fender_deville.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_gibsen",
+   "name": "Tone Stack 23",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_gibsen.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_engl",
+   "name": "Tone Stack 24",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_engl.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_crunch",
+   "name": "Tone Stack 25",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_crunch.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "ts_groove",
+   "name": "Tone Stack 26",
+   "section": "tone",
+   "gx": "faust-generated/tonestack_groove.cc",
+   "names": {
+    "amp.tonestack.Bass": "Bass",
+    "amp.tonestack.Middle": "Middle",
+    "amp.tonestack.Treble": "Treble"
+   }
+  },
+  {
+   "id": "pa_champ",
+   "name": "Single-Ended 6V6GT",
+   "section": "power",
+   "gx": "faust-generated/champ.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "pa_princeton",
+   "name": "Single-Ended 6V6",
+   "section": "power",
+   "gx": "faust-generated/princeton.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "pa_epiphone",
+   "name": "Single-Ended EL84",
+   "section": "power",
+   "gx": "faust-generated/epiphone.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "pa_orangedarkterror",
+   "name": "Push-Pull EL84",
+   "section": "power",
+   "gx": "faust-generated/orangedarkterror.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "pa_plexiel34",
+   "name": "Push-Pull EL34",
+   "section": "power",
+   "gx": "faust-generated/plexiel34.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "pa_supersonic",
+   "name": "Push-Pull 6L6",
+   "section": "power",
+   "gx": "faust-generated/supersonic.cc",
+   "names": {
+    "poweramp.Pregain": "Drive",
+    "poweramp.Gain": "Level"
+   },
+   "show": [
+    "poweramp.Pregain",
+    "poweramp.Gain"
+   ]
+  },
+  {
+   "id": "cab_4x12",
+   "name": "4x12",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_4x12",
+   "knobs": 3
+  },
+  {
+   "id": "cab_2x12",
+   "name": "2x12",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_2x12",
+   "knobs": 3
+  },
+  {
+   "id": "cab_1x12",
+   "name": "1x12",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_1x12",
+   "knobs": 3
+  },
+  {
+   "id": "cab_4x10",
+   "name": "4x10",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_4x10",
+   "knobs": 3
+  },
+  {
+   "id": "cab_2x10",
+   "name": "2x10",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_2x10",
+   "knobs": 3
+  },
+  {
+   "id": "cab_highgain",
+   "name": "4x12 High Gain",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_HighGain",
+   "knobs": 3
+  },
+  {
+   "id": "cab_marshall",
+   "name": "4x12 Closed",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_Marshall",
+   "knobs": 3
+  },
+  {
+   "id": "cab_mesa",
+   "name": "4x12 Modern",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_mesa",
+   "knobs": 3
+  },
+  {
+   "id": "cab_twin",
+   "name": "2x12 Combo",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_Twin",
+   "knobs": 3
+  },
+  {
+   "id": "cab_ac30",
+   "name": "2x12 Alnico",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_AC30",
+   "knobs": 3
+  },
+  {
+   "id": "cab_bassman",
+   "name": "4x10 Combo",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_Bassman",
+   "knobs": 3
+  },
+  {
+   "id": "cab_princeton",
+   "name": "1x10 Combo",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_Princeton",
+   "knobs": 3
+  },
+  {
+   "id": "cab_a2",
+   "name": "1x12 Open",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_A2",
+   "knobs": 3
+  },
+  {
+   "id": "cab_1x15",
+   "name": "1x15",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_1x15",
+   "knobs": 3
+  },
+  {
+   "id": "cab_briliant",
+   "name": "Brilliant",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_briliant",
+   "knobs": 3
+  },
+  {
+   "id": "cab_vitalize",
+   "name": "Vitalize",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_vitalize",
+   "knobs": 3
+  },
+  {
+   "id": "cab_charisma",
+   "name": "Charisma",
+   "section": "cab",
+   "builtin": "cab",
+   "ir": "cab_data_charisma",
+   "knobs": 3
+  },
+  {
+   "id": "ultracab",
+   "name": "Cab Simulator",
+   "section": "cab",
+   "lv2": "GxUltraCab.lv2",
+   "names": {
+    "SIZE": "Size"
+   }
+  },
+  {
+   "id": "chorus",
+   "name": "Chorus",
+   "section": "mod",
+   "gx": "faust-generated/chorus.cc"
+  },
+  {
+   "id": "chorus_mono",
+   "name": "Chorus Mono",
+   "section": "mod",
+   "gx": "faust-generated/chorus_mono.cc"
+  },
+  {
+   "id": "flanger",
+   "name": "Flanger",
+   "section": "mod",
+   "gx": "faust-generated/flanger.cc"
+  },
+  {
+   "id": "flanger_mono",
+   "name": "Flanger Mono",
+   "section": "mod",
+   "gx": "faust-generated/flanger_mono.cc"
+  },
+  {
+   "id": "flanger2",
+   "name": "Flanger 2",
+   "section": "mod",
+   "gx": "plugins/generated/flanger_gx.cc"
+  },
+  {
+   "id": "phaser",
+   "name": "Phaser",
+   "section": "mod",
+   "gx": "faust-generated/phaser.cc",
+   "names": {
+    "phaser.VibratoMode": "Vibrato",
+    "phaser.invert": "Invert",
+    "phaser.level": "Level",
+    "phaser.lfobpm": "Speed"
+   }
+  },
+  {
+   "id": "phaser_mono",
+   "name": "Phaser Mono",
+   "section": "mod",
+   "gx": "faust-generated/phaser_mono.cc"
+  },
+  {
+   "id": "tremolo",
+   "name": "Tremolo",
+   "section": "mod",
+   "gx": "faust-generated/tremolo.cc",
+   "names": {
+    "tremolo.SINE": "Shape"
+   }
+  },
+  {
+   "id": "vibe",
+   "name": "Vibe",
+   "section": "mod",
+   "gx": "plugins/vibe.cc",
+   "factory": "plugin_stereo",
+   "defines": [
+    "GUITARIX_AS_PLUGIN"
+   ]
+  },
+  {
+   "id": "ringmod",
+   "name": "Ring Mod",
+   "section": "mod",
+   "gx": "faust-generated/ring_modulator_st.cc"
+  },
+  {
+   "id": "ladder",
+   "name": "Ladder Filter",
+   "section": "mod",
+   "gx": "faust-generated/moog.cc"
+  },
+  {
+   "id": "widener",
+   "name": "Stereo Widener",
+   "section": "mod",
+   "gx": "faust-generated/panoram_enhancer.cc"
+  },
+  {
+   "id": "delay",
+   "name": "Delay",
+   "section": "delay",
+   "gx": "faust-generated/delay.cc"
+  },
+  {
+   "id": "echo",
+   "name": "Echo",
+   "section": "delay",
+   "gx": "faust-generated/echo.cc"
+  },
+  {
+   "id": "digidelay",
+   "name": "Digital Delay",
+   "section": "delay",
+   "gx": "faust-generated/digital_delay_st.cc"
+  },
+  {
+   "id": "duckdelay",
+   "name": "Ducking Delay",
+   "section": "delay",
+   "gx": "faust-generated/duck_delay_st.cc"
+  },
+  {
+   "id": "stdelay",
+   "name": "Stereo Delay",
+   "section": "delay",
+   "gx": "faust-generated/stereodelay.cc",
+   "names": {
+    "stereodelay.invert": "Invert"
+   }
+  },
+  {
+   "id": "stecho",
+   "name": "Stereo Echo",
+   "section": "delay",
+   "gx": "faust-generated/stereoecho.cc",
+   "names": {
+    "stereoecho.invert": "Invert"
+   }
+  },
+  {
+   "id": "revdelay",
+   "name": "Reverse Delay",
+   "section": "delay",
+   "gx": "plugins/reversedelay.cc"
+  },
+  {
+   "id": "freeverb",
+   "name": "Room Reverb",
+   "section": "reverb",
+   "gx": "faust-generated/freeverb.cc"
+  },
+  {
+   "id": "stverb",
+   "name": "Stereo Reverb",
+   "section": "reverb",
+   "gx": "faust-generated/stereoverb.cc",
+   "names": {
+    "stereoverb.invert": "Invert"
+   }
+  },
+  {
+   "id": "plate",
+   "name": "Plate Reverb",
+   "section": "reverb",
+   "gx": "faust-generated/dattorros_progenitor.cc"
+  },
+  {
+   "id": "hall",
+   "name": "Hall Reverb",
+   "section": "reverb",
+   "gx": "plugins/generated/zita_rev1.cc"
+  },
+  {
+   "id": "eq3",
+   "name": "3-Band EQ",
+   "section": "eq",
+   "gx": "faust-generated/tonecontroll.cc",
+   "names": {
+    "tonemodul.Bass": "Bass",
+    "tonemodul.Middle": "Middle",
+    "tonemodul.Treble": "Treble",
+    "tonemodul.ON": "Sharp On"
+   }
+  },
+  {
+   "id": "baxandall",
+   "name": "Bass / Treble",
+   "section": "eq",
+   "gx": "faust-generated/baxandall.cc"
+  },
+  {
+   "id": "peq",
+   "name": "Parametric EQ",
+   "section": "eq",
+   "gx": "faust-generated/peak_eq.cc",
+   "names": {
+    "eq.peak1": "Sub Freq",
+    "eq.peak2": "Low Freq",
+    "eq.peak3": "Mid Freq",
+    "eq.peak4": "High Freq"
+   }
+  },
+  {
+   "id": "geq",
+   "name": "Graphic EQ",
+   "section": "eq",
+   "gx": "faust-generated/graphiceq.cc",
+   "names": {
+    "graphiceq.g1": "31",
+    "graphiceq.g2": "62",
+    "graphiceq.g3": "125",
+    "graphiceq.g4": "250",
+    "graphiceq.g5": "500",
+    "graphiceq.g6": "1k",
+    "graphiceq.g7": "2k",
+    "graphiceq.g8": "4k",
+    "graphiceq.g9": "8k",
+    "graphiceq.g10": "16k",
+    "graphiceq.g11": "20k"
+   }
+  },
+  {
+   "id": "lohi",
+   "name": "Low / High Cut",
+   "section": "eq",
+   "gx": "faust-generated/low_high_pass.cc"
+  },
+  {
+   "id": "bandfilter",
+   "name": "Band Filter",
+   "section": "eq",
+   "gx": "faust-generated/biquad.cc"
+  },
+  {
+   "id": "bassenh",
+   "name": "Bass Enhancer",
+   "section": "eq",
+   "gx": "faust-generated/bass_enhancer.cc"
+  },
+  {
+   "id": "resonance",
+   "name": "Resonance",
+   "section": "eq",
+   "gx": "faust-generated/impulseresponse.cc"
+  }
+ ]
+}
