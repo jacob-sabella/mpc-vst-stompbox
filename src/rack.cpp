@@ -285,9 +285,11 @@ static int rk_get(void *p, const char *key, char *buf, int len) {
         int k = (int)strtol(rest + 1, &e, 10) - 1;
         Module *m = current(s);
         bool has = m && k >= 0 && k < m->nparams();
-        if (!strcmp(e, "_name")) return snprintf(buf, len, "%s", has ? m->param(k).name.c_str() : "");
+        // a knob the model doesn't use reads blank: a space, since an empty answer makes the wrapper fall back to
+        // the parameter's own name ("Gate 5") and a number
+        if (!strcmp(e, "_name")) return snprintf(buf, len, "%s", has ? m->param(k).name.c_str() : " ");
         if (!strcmp(e, "_display")) {
-            if (!has) return snprintf(buf, len, "%s", "");
+            if (!has) return snprintf(buf, len, "%s", " ");
             value_text(m->param(k), buf, len);
             return (int)strlen(buf) + 1;
         }

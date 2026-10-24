@@ -110,8 +110,12 @@ int main(int argc, char **argv) {
             if (set_ms > worst_set_ms) worst_set_ms = set_ms;
             CHECK(get(e, p, sk + "_model") == std::to_string(k), "%s: picks model %d", sk.c_str(), k);
             int named = 0;
-            for (int j = 1; j <= SECTIONS[SLOT_SECTION[s]].nknobs; j++)
-                if (!get(e, p, sk + "_k" + std::to_string(j) + "_name").empty()) named++;
+            for (int j = 1; j <= SECTIONS[SLOT_SECTION[s]].nknobs; j++) {
+                std::string kj = sk + "_k" + std::to_string(j), nm = get(e, p, kj + "_name");
+                if (nm != " ") { named++; continue; }
+                /* a knob the model doesn't use: blank name and value (a space, never empty: the wrapper would fall back) */
+                CHECK(get(e, p, kj + "_display") == " ", "%s %s: unused knob %d reads blank", sk.c_str(), MODELS[mi].id, j);
+            }
             CHECK(named > 0 || !strcmp(MODELS[mi].id, "dcblocker"), "%s %s: has named knobs", sk.c_str(), MODELS[mi].id);
             play(e, p, 20, 0.3f, &t);   /* the crossfade */
             Res r = play(e, p, 300, 0.3f, &t);
