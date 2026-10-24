@@ -1,0 +1,3 @@
+# Known upstream leaks (upstream is not patched here). Each loses its bytes once, when an instance is destroyed.
+# GxBoobTube.lv2's destructor deletes one of its two DSP objects (952 bytes)
+leak:boobtube::plugin
