@@ -1,0 +1,70 @@
+# Weekly: when guitarix or GxPlugins.lv2 has new commits, move upstream.env to them, run the offline tests and both
+# device builds with them, and open a pull request (one per pair of commits). A pull request opened by this workflow's
+# token doesn't start the Test workflow, so the tests run here first and the pull request links to this run.
+# A new upstream needs a new device test (tested.json) and bench before its release is published.
+# Needs the repository setting "Allow GitHub Actions to create and approve pull requests" (Settings > Actions > General).
+name: Upstream
+
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MPC_VST: ${{ github.workspace }}/mpc-vst-plugins
+    steps:
+      - uses: actions/checkout@v4
+      - name: New commits?
+        id: up
+        run: |
+          moved=$(tools/upstream-check.sh)
+          echo "moved=$moved" >> "$GITHUB_OUTPUT"
+          if [ -z "$moved" ]; then echo "upstream.env is up to date" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          . ./upstream.env
+          branch="upstream/${GUITARIX_COMMIT:0:7}-${GXPLUGINS_COMMIT:0:7}"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "$branch exists already: nothing to do" >> "$GITHUB_STEP_SUMMARY"; echo "moved=" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.up.outputs.moved != ''
+        uses: actions/checkout@v4
+        with:
+          repository: sd88me/mpc-vst-plugins
+          ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+          path: mpc-vst-plugins
+      - if: steps.up.outputs.moved != ''
+        uses: docker/setup-qemu-action@v3
+        with: { platforms: "arm,arm64" }
+      - name: Test and build with them
+        if: steps.up.outputs.moved != ''
+        run: |
+          tests/run.sh
+          vst/build.sh
+      - name: Open the pull request
+        if: steps.up.outputs.moved != ''
+        env:
+          MOVED: ${{ steps.up.outputs.moved }}
+          BRANCH: ${{ steps.up.outputs.branch }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -qam "Upstream: $MOVED"
+          git push -q origin "$BRANCH"
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BRANCH" \
+            --title "Upstream: $MOVED" --body "$(printf '%s\n' \
+              "Moves upstream.env: $MOVED." \
+              "" \
+              "Tested in $RUN: the rack test over every model and the wrapper host test (ASan), and the armv7 and aarch64 builds." \
+              "" \
+              "Before merging, check that no model in models.json lost or renamed a control (the rack test lists models with no knobs)." \
+              "Bench the new build on a device (tools/bench_rig.sh) before the next release.")"

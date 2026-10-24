@@ -1,0 +1,46 @@
+# The offline tests on every push and pull request: the upstream DSP fetched at the commits upstream.env pins, the rack
+# test over every model and the wrapper's host test (x86, ASan/UBSan), then the device builds for both CPUs.
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host:
+    # Skip workflow runs from fork PRs: only repo-internal pushes and PRs run.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    name: Host (ASan)
+    env:
+      MPC_VST: ${{ github.workspace }}/mpc-vst-plugins
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: sd88me/mpc-vst-plugins
+          ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+          path: mpc-vst-plugins
+      - run: tests/run.sh
+  device:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { arch: armv7, qemu: arm, name: "armv7 (MPC OS Gen1)" }
+          - { arch: aarch64, qemu: arm64, name: "aarch64 (MPC OS Gen2)" }
+    name: ${{ matrix.name }}
+    env:
+      MPC_VST: ${{ github.workspace }}/mpc-vst-plugins
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: sd88me/mpc-vst-plugins
+          ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+          path: mpc-vst-plugins
+      - uses: docker/setup-qemu-action@v3
+        with: { platforms: "${{ matrix.qemu }}" }
+      - run: vst/build.sh ${{ matrix.arch }}

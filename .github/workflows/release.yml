@@ -1,0 +1,36 @@
+# Build Stompbox for MPC OS Gen1 (armv7) and Gen2 (aarch64) and attach both zips to a DRAFT release, with
+# mpc-vst-plugins' reusable workflow (its docs/RELEASING.md, "Releasing from CI"). The upstream DSP is fetched at the
+# commits upstream.env pins; none of it is in this repo. mpc-vst-plugins is pinned to ONE commit in both places below
+# (and in test.yml): move them together.
+# Run it from the Actions tab or `gh workflow run release.yml -f version=<x.y.z>`, then publish the draft
+# (as a prerelease while the version is 0.x) once tested.json has an entry for the version from a device test.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version for the zips and INSTALL.md, e.g. 0.1.0
+        required: true
+        type: string
+      dry_run:
+        description: Build and package only (the zips as run artifacts, no draft release)
+        type: boolean
+        default: false
+
+jobs:
+  vst:
+    uses: sd88me/mpc-vst-plugins/.github/workflows/vst-release.yml@37beeea8b94e42d3eac1022e0476ac66bc8c385c
+    permissions: { contents: write }
+    with:
+      tag: stompbox-vst-v${{ inputs.version }}
+      version: ${{ inputs.version }}
+      tools_ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+      vst_dir: build/gen
+      # bench.txt (tools/bench_rig.sh's result for the default rig, bench.sh -j) lives in vst/; the release reads it
+      # from the generated folder
+      build: "vst/build.sh && { [ ! -f vst/bench.txt ] || cp vst/bench.txt build/gen/; }"
+      host_test: tests/run.sh
+      about: "A guitar rig as one insert effect: gate, compressor, wah, three pedals, amp, tone stack, power amp, cabinet, modulation, delay, reverb and EQ, from the guitarix project's DSP."
+      license: GPL-3.0-or-later
+      dry_run: ${{ inputs.dry_run }}
