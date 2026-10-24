@@ -34,10 +34,13 @@ import re
 import shutil
 import sys
 
+import skin_art
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 MAX_KNOBS = 12
 FAUST_PER_TU = 8
+BROWSE_COLS, BROWSE_ROWS = 4, 11   # the model browser: a page of 44 names
 
 
 def c(s):
@@ -200,47 +203,91 @@ def lv2_controls(m, ports):
 
 
 def write_layout(path, tabs, slots, knobs, by_section, theme):
-    """layout.conf: one page per tab, a row of frames per tab row (shadow coords: x 0-1280, y 86-714)."""
+    """layout.conf and its artwork (art/ beside it): one page per tab in the tab's colour, a row of slot panels per
+    tab row (shadow coords: x 0-1280, y 86-714). A panel: title and model field in its header, the footswitch (on/off)
+    at the left, its knobs across the rest. A model field opens the page's model browser (rack.cpp): BROWSE_COLS x
+    BROWSE_ROWS names a page over the whole page, whose own controls hide while it is open (when=browse_<tab>:Off),
+    so a slot can offer any number of models."""
     slot = {k: (n, si) for k, n, si in slots}
     L = [l.rstrip("\n") for l in open(theme)] + [""]
-    top, bottom, gap = 100, 708, 12
+    art_dir = os.path.join(os.path.dirname(path), "art")
+    os.makedirs(art_dir, exist_ok=True)
+
+    def art(name, svg):
+        with gen_file(os.path.join(art_dir, name)) as f:
+            f.write(svg)
+        return "art/" + name
+
+    top, bottom, gap, head = 92, 712, 12, 48
     for t in tabs:
+        tid, col = t["name"].lower(), t["color"]
+        light = skin_art.mix(col, "ffffff", 0.35)
+        page = " when=browse_%s:Off" % tid   # the page's own controls, hidden while its browser is open
+        fs_off = art("fs_%s_off.svg" % tid, skin_art.footswitch("fs%s0" % tid, col, False))
+        fs_on = art("fs_%s_on.svg" % tid, skin_art.footswitch("fs%s1" % tid, col, True))
         L.append("[tab %s]" % t["name"])
+        L.append("art file=%s" % art("bg_%s.svg" % tid, skin_art.background("bg" + tid, col)))
         rows = t["rows"]
         rh = (bottom - top - gap * (len(rows) - 1)) // len(rows)
         firsts, rests = [], []   # Q-Links: every slot's first knob, then the others in order
         for ri, row in enumerate(rows):
             y = top + ri * (rh + gap)
             if row == ["rack"]:
-                ctl = [("input", "Input"), ("output", "Output")]
-                L.append('frame x=20 y=%d w=1240 h=%d title="RACK"' % (y, rh))
-                for j, (k, n) in enumerate(ctl):
-                    L.append("knob cx=%d cy=%d r=40 key=%s bw=160" % (520 + 240 * j, y + rh // 2 + 8, k))
+                L.append("art file=%s x=20 y=%d w=1240 h=%d" % (
+                    art("panel_rack.svg", skin_art.panel("prack", 1240, rh, col, "MASTER", header=head)), y, rh))
+                for j, k in enumerate(("input", "output")):
+                    L.append("knob cx=%d cy=%d r=44 key=%s bw=200 ink_dim=%s%s" % (
+                        480 + 320 * j, y + head + (rh - head) // 2 - 30, k, light, page))
                 firsts.append("input"); rests.append("output")
                 continue
-            weights = [2.4 + knobs[slot[k][1]] for k in row]
+            weights = [3.0 + knobs[slot[k][1]] for k in row]
             x = 20
             avail = 1240 - gap * (len(row) - 1)
             for k, wgt in zip(row, weights):
                 name, si = slot[k]
                 fw = int(avail * wgt / sum(weights))
                 nk = knobs[si]
-                L.append('frame x=%d y=%d w=%d h=%d title="%s"' % (x, y, fw, rh, name.upper()))
-                cx = x + 105
-                n_opt = len(by_section[si])   # a long list: whole columns of 14 (the screen's height), narrow enough to fit
-                cols = -(-n_opt // 14)
-                fit = ' cols=%d cw=%d' % (cols, min(230, 1256 // cols - 4)) if n_opt > 14 else ' cw=230'
-                L.append('popup cx=%d cy=%d w=190 h=44 key=%s_model label="MODEL"%s' % (cx, y + rh // 2 - 24, k, fit))
-                L.append('toggle cx=%d cy=%d label="ON" key=%s_on bw=120 ns=0' % (cx, y + rh // 2 + 58, k))
-                kx0, kx1 = x + 215, x + fw - 10
+                title = name.upper()
+                fx = 24 + skin_art.title_width(title) + 22   # model field: the rest of the header, up to 360 px
+                fwid, fh = min(360, fw - fx - 16), head - 10
+                L.append("art file=%s x=%d y=%d w=%d h=%d" % (
+                    art("panel_%s.svg" % k, skin_art.panel("p" + k, fw, rh, col, title, None, head)), x, y, fw, rh))
+                L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_browse get=%s_model tsize=30 tcolor=%s img=%s%s' % (
+                    x + fx + fwid // 2, y + 5 + fh // 2, fwid, fh, k, k, light,
+                    art("field_%s.svg" % k, skin_art.field("f" + k, fwid, fh, col)), page))
+                body = y + head + (rh - head) // 2
+                L.append('toggle cx=%d cy=%d key=%s_on img=%s img_on=%s w=%d h=%d ns=0%s' % (
+                    x + 64, body, k, fs_off, fs_on, skin_art.FS_W, skin_art.FS_H, page))
+                kx0, kx1 = x + 118, x + fw - 14
                 step = (kx1 - kx0) / max(nk, 1)
-                r = 30 if step >= 90 else 26
+                r = 28 if step >= 96 else 25
+                cy = y + head + (rh - head - (2 * r + 83)) // 2 + r + 5   # knob, name and value centred in the body
                 for j in range(nk):
-                    L.append("knob cx=%d cy=%d r=%d key=%s_k%d bw=%d" % (kx0 + step * (j + 0.5), y + rh // 2 - 14, r, k, j + 1,
-                                                                    min(int(step) - 4, 150)))
+                    L.append("knob cx=%d cy=%d r=%d key=%s_k%d bw=%d ink_dim=%s%s" % (
+                        kx0 + step * (j + 0.5), cy, r, k, j + 1, min(int(step) - 4, 170), light, page))
                 firsts.append("%s_k1" % k)
                 rests += ["%s_k%d" % (k, j + 1) for j in range(1, nk)]
                 x += fw + gap
+        # the model browser: title, arrows (only with more than one page of names), CLOSE, the names
+        shown = " when=browse_%s:On" % tid
+        bx, by, bw, bh = 20, top, 1240, bottom - top
+        L.append("art file=%s x=%d y=%d w=%d h=%d%s" % (
+            art("browser_%s.svg" % tid, skin_art.browser_panel("br" + tid, bw, bh, col, head + 12)), bx, by, bw, bh, shown))
+        L.append("readout cx=%d cy=%d w=760 h=44 key=browse_title box=0 tsize=34 tcolor=%s talign=left%s" % (
+            bx + 24 + 380, by + 30, col, shown))
+        hy = by + 30
+        for side, cx in (("prev", bx + bw - 330), ("next", bx + bw - 250)):
+            L.append('button cx=%d cy=%d w=%d h=%d label="" key=browse_%s img=%s when=browse_%s_paged:On' % (
+                cx, hy, skin_art.ARROW_W, skin_art.ARROW_H, side,
+                art("arrow_%s_%s.svg" % (tid, side), skin_art.arrow("ar%s%s" % (tid, side), col, side == "prev")), tid))
+        L.append('button cx=%d cy=%d w=%d h=%d label="" key=browse_close img=%s%s' % (
+            bx + bw - 24 - skin_art.CLOSE_W // 2, hy, skin_art.CLOSE_W, skin_art.CLOSE_H,
+            art("close_%s.svg" % tid, skin_art.close_button("cl" + tid, col)), shown))
+        ly, lgap = by + head + 24, 4
+        th = (by + bh - 16 - ly - (BROWSE_ROWS - 1) * lgap) // BROWSE_ROWS
+        L.append("list x=%d y=%d w=%d h=%d cols=%d rows=%d th=%d gap=%d key=brow order=cols color=0b0522 tsize=30 "
+                 "tcolor=ffffff talign=center%s" % (bx + 20, ly, bw - 40, BROWSE_ROWS * (th + lgap) - lgap, BROWSE_COLS,
+                                                     BROWSE_ROWS, th, lgap, shown))
         L.append('qlinks "%s" = %s' % (t["name"], ",".join((firsts + rests)[:16])))
         L.append("")
     with gen_file(path) as f:
@@ -427,6 +474,14 @@ def main():
             return by_section[si].index(n) if n in by_section[si] else 0
         f.write("const int SLOT_DEFAULT_MODEL[] = { %s };\n" % ", ".join(str(dmodel(k, si)) for k, _, si in slots))
         f.write("const int SLOT_DEFAULT_ON[] = { %s };\n" % ", ".join(str(int(dfl.get(k, {}).get("on", 0))) for k, _, _ in slots))
+        tab_of = {k: ti for ti, t in enumerate(cfg["tabs"]) for row in t["rows"] for k in row}
+        missing = [k for k, _, _ in slots if k not in tab_of]
+        if missing:
+            raise SystemExit("models.json: slots on no tab: %s" % ", ".join(missing))
+        f.write("const int SLOT_TAB[] = { %s };\n" % ", ".join(str(tab_of[k]) for k, _, _ in slots))
+        f.write("const char *const TAB_KEYS[] = { %s };\nconst int NTABS = %d;\n" % (
+            ", ".join(c(t["name"].lower()) for t in cfg["tabs"]), len(cfg["tabs"])))
+        f.write("const int BROWSE_ROWS = %d;\n" % (BROWSE_COLS * BROWSE_ROWS))
     sources.append(os.path.join(out, "models.cpp"))
 
     # params.json: global controls, then per slot: model, on, knobs
@@ -447,6 +502,18 @@ def main():
                       "dynamic_name": True, "dynamic_display": True})
             keys.append("%s_k%d" % (k, j + 1))
         secs.append({"label": n, "keys": keys})
+    # the model browser (after everything else, so the indices above stay put): a slot's model field opens it on that
+    # slot's page, a page of rows at a time, so a slot can offer any number of models
+    for k, n, si in slots:
+        P.append({"key": k + "_browse", "name": n + " Models", "type": "trigger", "momentary": True})
+    for t in cfg["tabs"]:   # on that page: the browser is open; it is open with more than one page of names
+        P.append({"key": "browse_" + t["name"].lower(), "name": t["name"].title() + " Browser", "options": ["Off", "On"]})
+        P.append({"key": "browse_%s_paged" % t["name"].lower(), "name": t["name"].title() + " Pages", "options": ["Off", "On"]})
+    for key, name in (("browse_close", "Close"), ("browse_prev", "Page <"), ("browse_next", "Page >")):
+        P.append({"key": key, "name": name, "type": "trigger", "momentary": True})
+    P.append({"key": "browse_title", "name": "Browser", "type": "readout", "display": "string"})
+    for j in range(BROWSE_COLS * BROWSE_ROWS):
+        P.append({"key": "brow_%d" % (j + 1), "name": "Model %d" % (j + 1), "type": "slot", "display": "string"})
     with gen_file(os.path.join(out, "params.json")) as f:
         json.dump({"name": cfg.get("name", "Stompbox"), "params": P, "sections": secs}, f, indent=1)
 
@@ -471,6 +538,9 @@ def main():
     base["params"] = "params.json"
     write_layout(os.path.join(out, "layout.conf"), cfg["tabs"], slots, knobs, by_section, os.path.join(REPO, "vst", "theme.conf"))
     base["layout"] = "layout.conf"
+    base["art"] = "html"
+    with gen_file(os.path.join(out, "skin.css")) as f:
+        f.write(open(os.path.join(REPO, "vst", "skin.css")).read())
     for k in ("tile", "presets"):
         if k in base:
             base[k] = os.path.relpath(os.path.join(REPO, "vst", base[k]), out)

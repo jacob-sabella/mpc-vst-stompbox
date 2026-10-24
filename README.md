@@ -24,6 +24,10 @@ ranges and value text follow the model. Each model keeps its settings while you 
 all. Switching a slot or its model crossfades over 5 ms. The skin has five pages (INPUT, PEDALS, AMP, FX, EQ) with
 16 Q-Links each, the first knob of every slot on the first Q-Links.
 
+A tap on a slot's model name opens its model browser over the page: 44 names a page (four columns of 11), the current
+model lit, `<` and `>` for more pages when a slot has more models than that, so a slot can offer any number of models.
+A tap on a name picks it and closes the browser; CLOSE leaves the model as it was.
+
 Model names are generic ("Overdrive 1", "Lead Stack", "4x12 Closed").
 
 ## How this repo is built
@@ -47,7 +51,7 @@ running the tests and both builds with them.
 Needs Docker (with QEMU for the ARM builds) and an mpc-vst-plugins checkout next to this one (or `MPC_VST=<path>`).
 
 ```sh
-tests/run.sh               # offline, x86, ASan/UBSan: every model of every slot, a random parameter sweep, state; then the wrapper's host test
+tests/run.sh               # offline, x86, ASan/UBSan: every model of every slot, a random parameter sweep, the model browser, state; then the wrapper's host test
 vst/build.sh               # build/gen/build/stompbox.so (armv7) and aarch64/stompbox.so, the skin, the plugin-list entry
 tools/bench_rig.sh <ip>    # CPU on a device, per rig in tests/rigs/ (nothing installed; MPC keeps running)
 ```

@@ -6,12 +6,14 @@
  * Prints each model's x86 cost per 128-frame block (relative numbers only; the device bench is tools/bench.sh)
  * and a list of models that came out silent, for a look by ear. Exit status = failures. */
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <thread>
 #include <vector>
 extern "C" {
 #include "engine.h"
@@ -203,6 +205,34 @@ int main(int argc, char **argv) {
         play(e, p, 200, 0.3f, &t);
         Res r = play(e, p, 100, 0.3f, &t);
         CHECK(r.rms > 0.001 && r.peak <= 1.0 && fin, "after a random parameter sweep the rack still plays (rms %.4f)", r.rms);
+    }
+
+    /* model browser: open from a slot, page, pick, close */
+    {
+        CHECK(get(e, p, "browse_title") == " " && get(e, p, "browse_pedals") == "0", "browser starts closed");
+        pick(e, p, "pedal2", 0);
+        set(e, p, "pedal2_browse", "1");
+        CHECK(get(e, p, "browse_pedals") == "1" && get(e, p, "browse_amp") == "0", "pedal2_browse opens the PEDALS browser only");
+        CHECK(get(e, p, "brow_1_on") == "1" && get(e, p, "brow_2_on") == "0", "the current model is lit");
+        std::string first = get(e, p, "brow_1"), title = get(e, p, "browse_title");
+        CHECK(first.size() > 1 && title.find("page 1 of") != std::string::npos, "page 1: \"%s\" / \"%s\"", first.c_str(), title.c_str());
+        CHECK(get(e, p, "browse_pedals_paged") == "1", "a long list is paged");
+        auto wait = [] { std::this_thread::sleep_for(std::chrono::milliseconds(300)); };   /* past the repeat window */
+        set(e, p, "browse_next", "1");
+        set(e, p, "browse_next", "1");   /* MPC delivers a tap twice: the repeat is dropped */
+        std::string second = get(e, p, "brow_1");
+        CHECK(second != first && get(e, p, "browse_title").find("page 2 of") != std::string::npos, "browse_next turns the page once per tap (\"%s\")", second.c_str());
+        wait(); set(e, p, "browse_prev", "1"); wait(); set(e, p, "browse_prev", "1");
+        CHECK(get(e, p, "browse_title").find("page 1 of") == std::string::npos, "browse_prev wraps from page 1 to the last page");
+        wait(); set(e, p, "browse_next", "1"); wait(); set(e, p, "browse_next", "1");
+        set(e, p, "brow_1", "1");
+        CHECK(get(e, p, "pedal2_model") == std::to_string(BROWSE_ROWS), "a row pick sets the model (%s)", get(e, p, "pedal2_model").c_str());
+        CHECK(get(e, p, "browse_pedals") == "0" && get(e, p, "browse_title") == " ", "a pick closes the browser");
+        set(e, p, "amp_browse", "1");
+        CHECK(get(e, p, "browse_amp") == "1", "amp_browse opens the AMP browser");
+        set(e, p, "browse_close", "1");
+        CHECK(get(e, p, "browse_amp") == "0", "browse_close closes it");
+        pick(e, p, "pedal2", 0);
     }
 
     /* state: into a fresh instance, and garbage */

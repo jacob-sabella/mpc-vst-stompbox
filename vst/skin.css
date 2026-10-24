@@ -1,0 +1,15 @@
+/* Stompbox: neon on smoked glass. Text stays flat and large (no glow on anything you read); the glow is on the
+ * knob arcs and the panel edges (tools/skin_art.py). */
+:root { --title-size: 26px; --label-size: 20px; --seg-size: 21px; --button-size: 20px; --sheen: 0.05; }
+
+/* knobs: a dark face with a chrome rim, the value arc in neon pink */
+.knob-face { fill: #1f1548; stroke: #9a90c8; stroke-width: 1.5; }
+.knob-track { stroke: #3e2c80; }
+.knob-arc { filter: drop-shadow(0 0 4px rgba(255, 95, 210, 0.9)); }
+.knob-pointer { stroke: #ffffff; }
+
+/* the open model list: solid dark, big white names, the picked one in pink */
+.tile { fill-opacity: 0.98; }
+.tile-border { stroke-width: 2.5; filter: drop-shadow(0 0 6px rgba(125, 246, 255, 0.6)); }
+.seg-tx { font-weight: 600; letter-spacing: 0.01em; }
+.seg-sheen { opacity: 0; }

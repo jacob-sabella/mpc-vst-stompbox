@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -61,6 +62,8 @@ struct Rack {
     std::vector<std::pair<int, int>> queue;
     bool stop = false;
     std::atomic<int> rev{0};
+    int br_slot = -1, br_page = 0;   /* the model browser: the slot it picks for (-1: closed), the page shown */
+    std::chrono::steady_clock::time_point br_turned{};   /* the last page turn (repeats within BR_REPEAT_MS are dropped) */
 };
 
 static float db2lin(float db) { return powf(10.f, db / 20.f); }
@@ -241,17 +244,75 @@ static int model_by_id(const Slot &s, const char *id) {
 
 static void set_state(Rack *r, const char *txt);
 
+/* ---- the model browser: a slot's model field ("<slot>_browse") opens it on that slot's page, BROWSE_ROWS names a page
+ * ("brow_<j>": a name, "brow_<j>_on": the slot's model), any number of pages; a tap on a name picks it and closes it.
+ * "browse_<page key>" is On while it is open on that page (the skin hides the page's own controls then), and
+ * "browse_<page key>_paged" while it is with more than one page (the skin shows the arrows). Every change moves
+ * display_rev, so the wrapper re-reads it all. */
+static int br_pages(const Rack *r) {
+    return r->br_slot < 0 ? 1 : ((int)r->slots[r->br_slot].models.size() + BROWSE_ROWS - 1) / BROWSE_ROWS;
+}
+
+/* MPC delivers one tap on a trigger button twice (traced on a Key 37, 2026-10-24: "browse_next=1" twice, no 0 between),
+ * which turned a two-page list forward and straight back. Opening and closing don't mind; a page turn drops a repeat. */
+static const int BR_REPEAT_MS = 250;
+
+static bool br_turn_ok(Rack *r) {
+    auto now = std::chrono::steady_clock::now();
+    if (now - r->br_turned < std::chrono::milliseconds(BR_REPEAT_MS)) return false;
+    r->br_turned = now;
+    return true;
+}
+
+static void browser(Rack *r, int slot, int page) {   /* page wraps around: < on the first page goes to the last */
+    r->br_slot = slot;
+    int np = br_pages(r);
+    r->br_page = slot < 0 ? 0 : ((page % np) + np) % np;
+    r->rev.fetch_add(1, std::memory_order_release);
+}
+
+/* "brow_<j>[_on]" -> the model entry it shows (-1: none, or not a row key); *on: the "_on" suffix */
+static int br_row(const Rack *r, const char *key, bool *on) {
+    if (strncmp(key, "brow_", 5)) return -1;
+    char *e;
+    int j = (int)strtol(key + 5, &e, 10) - 1;
+    *on = !strcmp(e, "_on");
+    if ((*e && !*on) || j < 0 || j >= BROWSE_ROWS || r->br_slot < 0) return -1;
+    int k = r->br_page * BROWSE_ROWS + j;
+    return k < (int)r->slots[r->br_slot].models.size() ? k : -1;
+}
+
 static void rk_set(void *p, const char *key, const char *val) {
     Rack *r = (Rack *)p;
     if (!val) return;
     if (!strcmp(key, "state")) { set_state(r, val); return; }
     if (!strcmp(key, "input")) { r->input_db = (float)atof(val); return; }
     if (!strcmp(key, "output")) { r->output_db = (float)atof(val); return; }
+    bool on;
+    if (!strncmp(key, "brow_", 5)) {   /* a tap on a name, either toggle direction: pick it */
+        int k = br_row(r, key, &on);
+        if (k >= 0 && !on) {
+            Slot &s = r->slots[r->br_slot];
+            s.want = k;
+            request(r, r->br_slot, k);
+            browser(r, -1, 0);
+        }
+        return;
+    }
+    if (!strncmp(key, "browse_", 7)) {   /* triggers act on press; "browse_<page>" and the arrows' states are ours */
+        if (atof(val) < 0.5) return;
+        if (!strcmp(key + 7, "close")) browser(r, -1, 0);
+        else if (!strcmp(key + 7, "prev") && r->br_slot >= 0 && br_turn_ok(r)) browser(r, r->br_slot, r->br_page - 1);
+        else if (!strcmp(key + 7, "next") && r->br_slot >= 0 && br_turn_ok(r)) browser(r, r->br_slot, r->br_page + 1);
+        return;
+    }
     const char *rest;
     int si = slot_of(key, &rest);
     if (si < 0) return;
     Slot &s = r->slots[si];
-    if (!strcmp(rest, "model")) {
+    if (!strcmp(rest, "browse")) {
+        if (atof(val) >= 0.5) browser(r, si, s.want / BROWSE_ROWS);
+    } else if (!strcmp(rest, "model")) {
         int k = atoi(val);
         if (k >= 0 && k < (int)s.models.size()) { s.want = k; request(r, si, k); }
     } else if (!strcmp(rest, "on")) {
@@ -274,10 +335,36 @@ static int rk_get(void *p, const char *key, char *buf, int len) {
     if (!strcmp(key, "input")) return snprintf(buf, len, "%g", r->input_db);
     if (!strcmp(key, "output")) return snprintf(buf, len, "%g", r->output_db);
     if (!strcmp(key, "display_rev")) return snprintf(buf, len, "%d", r->rev.load(std::memory_order_acquire));
+    bool on;
+    if (!strncmp(key, "brow_", 5)) {
+        int k = br_row(r, key, &on);
+        if (on) return snprintf(buf, len, "%d", k >= 0 && k == r->slots[r->br_slot].want);
+        /* past the last model: a space, since an empty answer makes the wrapper show the row's own name */
+        return snprintf(buf, len, "%s", k >= 0 ? MODELS[r->slots[r->br_slot].models[k]].name : " ");
+    }
+    if (!strncmp(key, "browse_", 7)) {
+        const char *b = key + 7;
+        if (!strcmp(b, "title")) {
+            if (r->br_slot < 0) return snprintf(buf, len, "%s", " ");
+            int n = (int)r->slots[r->br_slot].models.size(), np = br_pages(r);
+            return np > 1 ? snprintf(buf, len, "%s  \xc2\xb7  %d models  \xc2\xb7  page %d of %d", SLOT_NAMES[r->br_slot], n,
+                                     r->br_page + 1, np)
+                          : snprintf(buf, len, "%s  \xc2\xb7  %d models", SLOT_NAMES[r->br_slot], n);
+        }
+        if (!strcmp(b, "close") || !strcmp(b, "prev") || !strcmp(b, "next")) return snprintf(buf, len, "0");
+        for (int t = 0; t < NTABS; t++) {   /* "browse_<page>": open on that page; "browse_<page>_paged": with arrows */
+            size_t n = strlen(TAB_KEYS[t]);
+            if (strncmp(b, TAB_KEYS[t], n) || (b[n] && strcmp(b + n, "_paged"))) continue;
+            bool here = r->br_slot >= 0 && SLOT_TAB[r->br_slot] == t;
+            return snprintf(buf, len, "%d", here && (!b[n] || br_pages(r) > 1));
+        }
+        return 0;
+    }
     const char *rest;
     int si = slot_of(key, &rest);
     if (si < 0) return 0;
     Slot &s = r->slots[si];
+    if (!strcmp(rest, "browse")) return snprintf(buf, len, "0");
     if (!strcmp(rest, "model")) return snprintf(buf, len, "%d", s.want);
     if (!strcmp(rest, "on")) return snprintf(buf, len, "%d", s.on);
     if (rest[0] == 'k') {

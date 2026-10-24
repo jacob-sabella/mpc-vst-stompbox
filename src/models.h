@@ -52,3 +52,7 @@ extern const int SLOT_SECTION[];
 extern const int NSLOTS;
 extern const int SLOT_DEFAULT_MODEL[];   /* index into the section's models (models.json "defaults") */
 extern const int SLOT_DEFAULT_ON[];
+extern const int SLOT_TAB[];             /* per slot: the skin page it is on (models.json "tabs") */
+extern const char *const TAB_KEYS[];     /* per page: "browse_<key>" is On while that page's model browser is open */
+extern const int NTABS;
+extern const int BROWSE_ROWS;            /* model names per browser page ("brow_1".."brow_<n>") */

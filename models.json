@@ -119,6 +119,7 @@
  "tabs": [
   {
    "name": "INPUT",
+   "color": "3ef2ff",
    "rows": [
     [
      "gate"
@@ -133,6 +134,7 @@
   },
   {
    "name": "PEDALS",
+   "color": "ff4fd8",
    "rows": [
     [
      "pedal1"
@@ -147,6 +149,7 @@
   },
   {
    "name": "AMP",
+   "color": "ffa23d",
    "rows": [
     [
      "amp"
@@ -162,6 +165,7 @@
   },
   {
    "name": "FX",
+   "color": "b48cff",
    "rows": [
     [
      "mod"
@@ -176,6 +180,7 @@
   },
   {
    "name": "EQ",
+   "color": "5dffb0",
    "rows": [
     [
      "eq"
