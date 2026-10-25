@@ -24,15 +24,21 @@ ranges and value text follow the model. Each model keeps its settings while you 
 all. Switching a slot or its model crossfades over 5 ms. The skin has five pages (INPUT, PEDALS, AMP, FX, EQ) with
 16 Q-Links each, the first knob of every slot on the first Q-Links.
 
+![The PEDALS page on an MPC Key 37](docs/screenshots/pedals.png)
+
 A tap on a slot's model name opens its model browser over the page: 44 names a page (four columns of 11), the current
 model lit, `<` and `>` for more pages when a slot has more models than that, so a slot can offer any number of models.
 A tap on a name picks it and closes the browser; CLOSE leaves the model as it was.
+
+![The model browser open on a pedal](docs/screenshots/model-browser.png)
 
 The PEDALS page holds any number of pedals, three to a page. Its bar shows which ones are on screen ("Pedals 4-6 of 7"),
 with `<` and `>` when there is more than one page, and ADD PEDAL appends one (switched on) at the end of the chain and
 turns to it. Each pedal's header has earlier and later arrows that move it along the chain, and an X that removes it
 (it fades out first). A new rig starts with three pedals, and the project saves however many it has. Moving a pedal
 that is on can click, since the signal's path changes at once. Each pedal costs CPU only while it is on.
+
+![A fourth pedal added: its own page, with empty frames to add more](docs/screenshots/pedal-added.png)
 
 Put it on a track's insert (channel mixer > EFFECTS). MPC doesn't run a drum pad's insert while that pad is silent, and
 the screen only follows the browser, ADD PEDAL and the pedal arrows while the plugin runs, so on a silent pad the page
