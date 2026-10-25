@@ -531,8 +531,8 @@ static int rk_get(void *p, const char *key, char *buf, int len) {
     if (paged(SLOT_SECTION[i])) {
         if (!strcmp(rest, "view"))   /* 0: hidden (the page's browser is open), 1: a slot, 2: empty */
             return snprintf(buf, len, "%d", br_open_on(r, SLOT_TAB[i]) ? 0 : sp ? 1 : 2);
-        if (!strcmp(rest, "title")) {
-            if (!sp) return snprintf(buf, len, "%s", " ");
+        if (!strcmp(rest, "title")) {   /* shown by the skin whatever the view (see gen_models.py), so blank unless a slot is */
+            if (!sp || br_open_on(r, SLOT_TAB[i])) return snprintf(buf, len, "%s", " ");
             std::string t = sp->name;
             for (auto &c : t) c = (char)toupper((unsigned char)c);
             return snprintf(buf, len, "%s", t.c_str());

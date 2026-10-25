@@ -291,8 +291,10 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
                     art("panel_%s.svg" % k, skin_art.panel("p" + k, fw, rh, col, "" if sec.get("paged") else title, None, head)),
                     x, y, fw, rh, fpage if sec.get("paged") else ""))
                 if sec.get("paged"):
-                    L.append("readout cx=%d cy=%d w=%d h=40 key=%s_title box=0 tsize=28 tcolor=%s tweight=bold talign=left%s" % (
-                        x + 22 + (fx - 30) // 2, y + 5 + fh // 2, fx - 30, k, col, fpage))
+                    # no when=: shadow_skin's mode image reserves 34 px above any readout for a caption, which
+                    # reached over the frame above and hid its bottom edge; the engine blanks the text instead
+                    L.append("readout cx=%d cy=%d w=%d h=40 key=%s_title box=0 tsize=28 tcolor=%s tweight=bold talign=left" % (
+                        x + 22 + (fx - 30) // 2, y + 5 + fh // 2, fx - 30, k, col))
                     for j, kind in enumerate(("remove", "down", "up")):   # right to left in the header
                         L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_%s img=%s%s' % (
                             x + fw - 18 - skin_art.ICON_W // 2 - j * (skin_art.ICON_W + 10), y + 5 + fh // 2,
