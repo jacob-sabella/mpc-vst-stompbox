@@ -34,6 +34,10 @@ turns to it. Each pedal's header has earlier and later arrows that move it along
 (it fades out first). A new rig starts with three pedals, and the project saves however many it has. Moving a pedal
 that is on can click, since the signal's path changes at once. Each pedal costs CPU only while it is on.
 
+Put it on a track's insert (channel mixer > EFFECTS). MPC doesn't run a drum pad's insert while that pad is silent, and
+the screen only follows the browser, ADD PEDAL and the pedal arrows while the plugin runs, so on a silent pad the page
+stays as it was (seen on a Key 37, 2026-10-25).
+
 Model names are generic ("Overdrive 1", "Lead Stack", "4x12 Closed").
 
 ## How this repo is built
