@@ -189,3 +189,58 @@ def footswitch(uid, colour, on):
     o.append('<ellipse cx="%g" cy="%g" rx="8" ry="4.5" fill="#fff" opacity="0.55"/>' % (cx - 6, cy - 8 + (2 if on else 0)))
     o.append('</svg>')
     return "\n".join(o)
+
+
+def strip(uid, w, h, colour):
+    """The bar over a paged section's frames, w x h: its page title, the page arrows and ADD."""
+    return "\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d"><defs>' % (w, h, w, h),
+        '<linearGradient id="%s_bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#%s" stop-opacity="0.38"/>'
+        '<stop offset="0.6" stop-color="#%s" stop-opacity="0.08"/><stop offset="1" stop-color="#%s" stop-opacity="0.22"/>'
+        '</linearGradient></defs>' % (uid, colour, colour, colour),
+        '<rect x="2" y="2" width="%d" height="%d" rx="12" fill="#07031a" fill-opacity="0.92"/>' % (w - 4, h - 4),
+        '<rect x="2" y="2" width="%d" height="%d" rx="12" fill="url(#%s_bg)" stroke="#%s" stroke-width="2"/>' % (
+            w - 4, h - 4, uid, colour),
+        '</svg>'])
+
+
+def empty_panel(uid, w, h, colour):
+    """An empty frame of a paged section, w x h: a dashed outline (its ADD button sits in the middle)."""
+    return "\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (w, h, w, h),
+        '<rect x="3" y="3" width="%d" height="%d" rx="14" fill="#07031a" fill-opacity="0.55" stroke="#%s" '
+        'stroke-width="2" stroke-dasharray="14 10" opacity="0.7"/>' % (w - 6, h - 6, colour),
+        '</svg>'])
+
+
+ICON_W, ICON_H = 56, 38
+
+
+def icon_button(uid, colour, kind):
+    """A frame's small header button: "up" (earlier in the chain), "down" (later) or "remove"."""
+    w, h = ICON_W, ICON_H
+    cx, cy = w / 2, h / 2
+    if kind == "remove":
+        g = '<path d="M%g,%g l14,14 M%g,%g l-14,14" stroke="#ff6b8b" stroke-width="4" stroke-linecap="round"/>' % (
+            cx - 7, cy - 7, cx + 7, cy - 7)
+    else:
+        d = -1 if kind == "up" else 1
+        g = '<path d="M%g,%g L%g,%g L%g,%g" fill="none" stroke="#%s" stroke-width="4.5" stroke-linecap="round" ' \
+            'stroke-linejoin="round"/>' % (cx - 10, cy - 5 * d, cx, cy + 5 * d, cx + 10, cy - 5 * d, colour)
+    return "\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (w, h, w, h),
+        '<rect x="1" y="1" width="%d" height="%d" rx="9" fill="#0b0522" stroke="#%s" stroke-width="1.8"/>' % (w - 2, h - 2, colour),
+        g, '</svg>'])
+
+
+def add_button(uid, colour, w, h, text):
+    """ADD for a paged section: a plus and the item's name."""
+    return "\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (w, h, w, h),
+        '<rect x="1" y="1" width="%d" height="%d" rx="10" fill="#%s" fill-opacity="0.22" stroke="#%s" stroke-width="2"/>' % (
+            w - 2, h - 2, colour, colour),
+        '<path d="M%g,%g h16 M%g,%g v16" stroke="#%s" stroke-width="4" stroke-linecap="round"/>' % (
+            22, h / 2, 30, h / 2 - 8, colour),
+        '<text x="%g" y="%g" text-anchor="middle" font-family="Titillium Web" font-weight="700" font-size="20" '
+        'letter-spacing="1.5" fill="#ffffff">%s</text>' % ((w + 40) / 2, h / 2 + 7, text),
+        '</svg>'])

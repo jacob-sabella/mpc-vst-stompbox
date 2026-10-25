@@ -16,6 +16,8 @@
   {
    "key": "pedal",
    "name": "Pedals",
+   "item": "Pedal",
+   "paged": 64,
    "slots": [
     [
      "pedal1",

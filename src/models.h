@@ -38,15 +38,17 @@ struct section_t {
     const char *key, *name;
     int stereo;      /* runs after the mono part of the chain: stereo models stay stereo, mono ones run per side */
     int nknobs;
-    int slot;        /* first slot index of this section */
-    int nslots;      /* a section with two slots (two pedals) */
+    int slot;        /* its first parameter frame (an index into SLOT_KEYS) */
+    int nslots;      /* its parameter frames: its slots, or for a paged section the frames a page shows */
+    int paged;       /* 0: a fixed section; else the most slots it can hold (models.json "paged") */
+    const char *item;   /* paged: one slot's name ("Pedal": "Pedal 4") */
 };
 
 extern const model_t MODELS[];
 extern const int NMODELS;
 extern const section_t SECTIONS[];
 extern const int NSECTIONS;
-extern const char *const SLOT_KEYS[];    /* per slot: parameter key prefix */
+extern const char *const SLOT_KEYS[];    /* per parameter frame: its key prefix */
 extern const char *const SLOT_NAMES[];
 extern const int SLOT_SECTION[];
 extern const int NSLOTS;

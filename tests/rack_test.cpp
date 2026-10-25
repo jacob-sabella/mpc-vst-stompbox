@@ -235,6 +235,94 @@ int main(int argc, char **argv) {
         pick(e, p, "pedal2", 0);
     }
 
+    /* the pedals: any number, a page of three frames at a time; add, page, move, remove */
+    {
+        auto wait = [] { std::this_thread::sleep_for(std::chrono::milliseconds(300)); };   /* past the repeat window */
+        auto model = [&](const char *f) { return get(e, p, std::string(f) + "_model"); };
+        CHECK(get(e, p, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 3" && get(e, p, "pedal_paged") == "0",
+              "three pedals to start, one page (\"%s\")", get(e, p, "pedal_title").c_str());
+        CHECK(get(e, p, "pedal1_view") == "1" && get(e, p, "pedal1_title") == "PEDAL 1", "frame 1 shows pedal 1");
+        set(e, p, "pedal_add", "1");
+        set(e, p, "pedal_add", "1");   /* MPC delivers a tap twice: one pedal */
+        CHECK(get(e, p, "pedal_title") == "Pedal 4 of 4", "an add appends one pedal and shows its page (\"%s\")",
+              get(e, p, "pedal_title").c_str());
+        CHECK(get(e, p, "pedal1_view") == "1" && get(e, p, "pedal2_view") == "2" && get(e, p, "pedal1_title") == "PEDAL 4",
+              "page 2: pedal 4, then empty frames");
+        CHECK(get(e, p, "pedal_paged") == "1" && get(e, p, "pedal2_k1_name") == " " && get(e, p, "pedal1_on") == "1",
+              "arrows shown, an empty frame reads blank, a new pedal is on");
+        for (int k = 0; k < 4; k++) { wait(); set(e, p, "pedal_add", "1"); }
+        CHECK(get(e, p, "pedal_title") == "Pedals 7\xe2\x80\x93" "8 of 8", "eight pedals (\"%s\")", get(e, p, "pedal_title").c_str());
+        /* every pedal a different model, all on: the new ones fade in once built */
+        set(e, p, "pedal_next", "1");   /* wraps to page 1 */
+        for (int pg = 0; pg < 3; pg++) {
+            for (int f = 1; f <= 3; f++) {
+                std::string fk = "pedal" + std::to_string(f);
+                if (get(e, p, fk + "_view") != "1") continue;
+                pick(e, p, fk, pg * 3 + f);
+                set(e, p, fk + "_on", "1");
+            }
+            wait(); set(e, p, "pedal_next", "1");
+        }
+        Res r8 = play(e, p, 300, 0.3f, &t);
+        printf("     eight pedals on: rms %.4f peak %.3f, %.1f us/block\n", r8.rms, r8.peak, r8.us);
+        CHECK(std::isfinite(r8.rms) && r8.peak <= 1.0 && r8.rms > 0.001, "eight pedals play");
+        CHECK(get(e, p, "pedal_title").find("Pedals 1") == 0, "back on page 1");
+        std::string m1 = model("pedal1"), m2 = model("pedal2");
+        set(e, p, "pedal1_down", "1");
+        CHECK(model("pedal1") == m2 && model("pedal2") == m1, "pedal 1 moves later (%s %s)", model("pedal1").c_str(), model("pedal2").c_str());
+        wait(); set(e, p, "pedal1_up", "1");   /* the first can't move earlier */
+        CHECK(model("pedal1") == m2, "the first pedal stays first");
+        Res rm = play(e, p, 30, 0.3f, &t);
+        CHECK(std::isfinite(rm.rms), "plays after a move");
+        /* eight drives make a square wave of anything: a remove may step no more than the chain does by itself */
+        Res base = play(e, p, 30, 0.05f, &t);
+        set(e, p, "pedal2_remove", "1");
+        set(e, p, "pedal2_remove", "1");   /* the repeat: one removed */
+        CHECK(get(e, p, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 7" && model("pedal2") != m1,
+              "a remove drops one pedal (\"%s\")", get(e, p, "pedal_title").c_str());
+        Res rr = play(e, p, 30, 0.05f, &t);
+        CHECK(rr.maxstep <= base.maxstep + 2000, "a remove fades out (largest step %d, %d without)", rr.maxstep, base.maxstep);
+        /* state with seven pedals: into a fresh instance */
+        static char a[65536], b[65536];
+        e->get_param(p, "state", a, sizeof a);
+        CHECK(strstr(a, "pedal_count=7\n") && strstr(a, "pedal7_model="), "the state has all seven");
+        void *q = e->create(nullptr);
+        e->set_param(q, "state", a);
+        e->get_param(q, "state", b, sizeof b);
+        CHECK(!strcmp(a, b), "seven pedals restore into a fresh instance");
+        CHECK(get(e, q, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 7", "restored: seven pedals, page 1");
+        /* a state from before pedals were paged: three */
+        e->set_param(q, "state", "v=1\npedal1_model=od1\npedal2_on=1\n");
+        CHECK(get(e, q, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 3" && get(e, q, "pedal2_on") == "1", "an old state has three pedals");
+        /* remove them all: the frames are empty, the input passes the pedals */
+        for (int k = 0; k < 3; k++) { wait(); set(e, q, "pedal1_remove", "1"); }
+        CHECK(get(e, q, "pedal_title") == "No Pedals" && get(e, q, "pedal1_view") == "2" && get(e, q, "pedal1_model") == "0",
+              "no pedals left (\"%s\")", get(e, q, "pedal_title").c_str());
+        long tq = 0;
+        Res rq = play(e, q, 200, 0.3f, &tq);
+        CHECK(std::isfinite(rq.rms) && rq.rms > 0.001, "plays with no pedals");
+        set(e, q, "pedal1_browse", "1");
+        CHECK(get(e, q, "browse_pedals") == "0", "an empty frame opens no browser");
+        e->destroy(q);
+        /* a browser open on the pedals page hides the frames and the arrows */
+        set(e, p, "pedal1_browse", "1");
+        CHECK(get(e, p, "pedal1_view") == "0" && get(e, p, "pedal_paged") == "0", "the browser hides the frames");
+        set(e, p, "browse_close", "1");
+        /* random adds, moves and removes while the audio runs */
+        const char *ops[] = { "pedal_add", "pedal1_remove", "pedal2_remove", "pedal3_remove", "pedal1_down", "pedal2_up",
+                              "pedal_next", "pedal_prev", "pedal3_on" };
+        srand(11);
+        int16_t in[2 * N], out[2 * N];
+        for (int b = 0; b < 3000; b++) {
+            if (b % 5 == 0) set(e, p, ops[rand() % 9], "1");
+            tone(in, t, 0.3f); t += N;
+            e->process(p, in, out, N);
+        }
+        Res rs = play(e, p, 50, 0.3f, &t);
+        CHECK(std::isfinite(rs.rms), "random pedal edits under audio (now \"%s\")", get(e, p, "pedal_title").c_str());
+        e->set_param(p, "state", "v=1\n");   /* back to three for the rest */
+    }
+
     /* state: into a fresh instance, and garbage */
     {
         pick(e, p, "amp", 3); set(e, p, "amp_k1", "0.8"); set(e, p, "reverb_on", "1"); pick(e, p, "reverb", 2);

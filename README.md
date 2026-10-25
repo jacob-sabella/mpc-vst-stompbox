@@ -5,8 +5,8 @@ with a native MPC screen skin. Its DSP is the [guitarix](https://github.com/brum
 own modules and the [GxPlugins.lv2](https://github.com/brummer10/GxPlugins.lv2) pedals, 197 models in all.
 
 ```
-input -> gate -> comp -> wah -> pedal 1 -> pedal 2 -> pedal 3 -> amp -> tone stack -> power amp -> cabinet   (mono)
-      -> mod -> delay -> reverb -> EQ -> output                                                              (stereo)
+input -> gate -> comp -> wah -> pedal 1 -> ... -> pedal N -> amp -> tone stack -> power amp -> cabinet   (mono)
+      -> mod -> delay -> reverb -> EQ -> output                                                        (stereo)
 ```
 
 | Slot | Models | | Slot | Models |
@@ -14,7 +14,7 @@ input -> gate -> comp -> wah -> pedal 1 -> pedal 2 -> pedal 3 -> amp -> tone sta
 | Gate | 2 | | Cabinet | 18 |
 | Comp | 4 (compressor, expander, sustainer, swell) | | Mod | 12 (chorus, flanger, phaser, vibe, tremolo, widener...) |
 | Wah | 15 (wahs, auto wah, envelope filter) | | Delay | 7 |
-| Pedal 1-3 | 68 each (boosts, overdrives, distortions, fuzzes) | | Reverb | 4 |
+| Pedals (any number, up to 64) | 68 each (boosts, overdrives, distortions, fuzzes) | | Reverb | 4 |
 | Amp | 26 (tube preamps, stacks, combos, bass) | | EQ | 8 |
 | Tone stack | 27 | | | |
 | Power amp | 6 | | | |
@@ -27,6 +27,12 @@ all. Switching a slot or its model crossfades over 5 ms. The skin has five pages
 A tap on a slot's model name opens its model browser over the page: 44 names a page (four columns of 11), the current
 model lit, `<` and `>` for more pages when a slot has more models than that, so a slot can offer any number of models.
 A tap on a name picks it and closes the browser; CLOSE leaves the model as it was.
+
+The PEDALS page holds any number of pedals, three to a page. Its bar shows which ones are on screen ("Pedals 4-6 of 7"),
+with `<` and `>` when there is more than one page, and ADD PEDAL appends one (switched on) at the end of the chain and
+turns to it. Each pedal's header has earlier and later arrows that move it along the chain, and an X that removes it
+(it fades out first). A new rig starts with three pedals, and the project saves however many it has. Moving a pedal
+that is on can click, since the signal's path changes at once. Each pedal costs CPU only while it is on.
 
 Model names are generic ("Overdrive 1", "Lead Stack", "4x12 Closed").
 
@@ -51,7 +57,7 @@ running the tests and both builds with them.
 Needs Docker (with QEMU for the ARM builds) and an mpc-vst-plugins checkout next to this one (or `MPC_VST=<path>`).
 
 ```sh
-tests/run.sh               # offline, x86, ASan/UBSan: every model of every slot, a random parameter sweep, the model browser, state; then the wrapper's host test
+tests/run.sh               # offline, x86, ASan/UBSan: every model of every slot, a random parameter sweep, the model browser, adding, moving and removing pedals, state; then the wrapper's host test
 vst/build.sh               # build/gen/build/stompbox.so (armv7) and aarch64/stompbox.so, the skin, the plugin-list entry
 tools/bench_rig.sh <ip>    # CPU on a device, per rig in tests/rigs/ (nothing installed; MPC keeps running)
 ```

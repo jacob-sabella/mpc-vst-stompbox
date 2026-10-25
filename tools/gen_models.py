@@ -6,7 +6,9 @@
 
 models.json (ours, the only list of what the rack offers):
     "sections": [{"key", "name", "stereo": bool, "slots": [[key, name], ...]}]   chain order; a section may have
-                 several slots (two pedal slots share the pedal models)
+                 several slots (pedal slots share the pedal models). With "paged": N and "item": name it holds any
+                 number of slots up to N, added and removed on the screen, and its "slots" are the frames that show
+                 a page of them
     "models":   [{"id", "name", "section",
                   one of  "gx": "<path under guitarix/trunk/src>"   a guitarix PluginDef module (faust-generated/x.cc,
                                                                     plugins/generated/x.cc)
@@ -202,12 +204,15 @@ def lv2_controls(m, ports):
     return [p for p in show if p["symbol"].lower() not in hide], [p for p in show if p["symbol"].lower() in hide]
 
 
-def write_layout(path, tabs, slots, knobs, by_section, theme):
+def write_layout(path, tabs, slots, knobs, sections, theme):
     """layout.conf and its artwork (art/ beside it): one page per tab in the tab's colour, a row of slot panels per
     tab row (shadow coords: x 0-1280, y 86-714). A panel: title and model field in its header, the footswitch (on/off)
     at the left, its knobs across the rest. A model field opens the page's model browser (rack.cpp): BROWSE_COLS x
     BROWSE_ROWS names a page over the whole page, whose own controls hide while it is open (when=browse_<tab>:Off),
-    so a slot can offer any number of models."""
+    so a slot can offer any number of models.
+    A page with a paged section's frames has a bar over them (the page title, < >, ADD), and each frame shows by its
+    "<frame>_view": its slot's panel (a live title, and earlier / later / remove in the header), an empty frame with
+    ADD, or nothing while the browser is open."""
     slot = {k: (n, si) for k, n, si in slots}
     L = [l.rstrip("\n") for l in open(theme)] + [""]
     art_dir = os.path.join(os.path.dirname(path), "art")
@@ -218,7 +223,7 @@ def write_layout(path, tabs, slots, knobs, by_section, theme):
             f.write(svg)
         return "art/" + name
 
-    top, bottom, gap, head = 92, 712, 12, 48
+    top0, bottom, gap, head, bar = 92, 712, 12, 48, 52
     for t in tabs:
         tid, col = t["name"].lower(), t["color"]
         light = skin_art.mix(col, "ffffff", 0.35)
@@ -228,6 +233,26 @@ def write_layout(path, tabs, slots, knobs, by_section, theme):
         L.append("[tab %s]" % t["name"])
         L.append("art file=%s" % art("bg_%s.svg" % tid, skin_art.background("bg" + tid, col)))
         rows = t["rows"]
+        pg = [sections[slot[k][1]] for row in rows for k in row if k in slot and sections[slot[k][1]].get("paged")]
+        top = top0
+        if pg:   # the paged section's bar: its page title, < >, ADD
+            sec = pg[0]
+            add_w = 230
+            # in the background, not shown by when=: a frame's mode image (the background under its parts) reaches up
+            # over the bar, and the browser covers the whole page when it opens
+            L.append("art file=%s x=20 y=%d w=1240 h=%d" % (art("bar_%s.svg" % tid, skin_art.strip("bar" + tid, 1240, bar, col)),
+                                                         top, bar))
+            L.append("readout cx=%d cy=%d w=640 h=44 key=%s_title box=0 tsize=30 tcolor=%s tweight=bold talign=left%s" % (
+                44 + 320, top + bar // 2, sec["key"], col, page))
+            for side, cx in (("prev", 1260 - 16 - add_w - 24 - 80 - skin_art.ARROW_W // 2),
+                             ("next", 1260 - 16 - add_w - 24 - skin_art.ARROW_W // 2)):
+                L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_%s img=%s when=%s_paged:On' % (
+                    cx, top + bar // 2, skin_art.ARROW_W, bar - 8, sec["key"], side,
+                    art("parrow_%s_%s.svg" % (tid, side), skin_art.arrow("pa%s%s" % (tid, side), col, side == "prev")), sec["key"]))
+            add_img = art("add_%s.svg" % tid, skin_art.add_button("add" + tid, col, add_w, bar - 8, "ADD " + sec["item"].upper()))
+            L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_add img=%s%s' % (
+                1260 - 16 - add_w // 2, top + bar // 2, add_w, bar - 8, sec["key"], add_img, page))
+            top += bar + 8
         rh = (bottom - top - gap * (len(rows) - 1)) // len(rows)
         firsts, rests = [], []   # Q-Links: every slot's first knob, then the others in order
         for ri, row in enumerate(rows):
@@ -245,32 +270,52 @@ def write_layout(path, tabs, slots, knobs, by_section, theme):
             avail = 1240 - gap * (len(row) - 1)
             for k, wgt in zip(row, weights):
                 name, si = slot[k]
+                sec = sections[si]
                 fw = int(avail * wgt / sum(weights))
                 nk = knobs[si]
                 title = name.upper()
+                if sec.get("paged"):   # the title is live ("PEDAL 7"), the frame shows by <frame>_view
+                    title = (sec["item"] + " %d" % sec["paged"]).upper()
+                    fpage = " when=%s_view:Slot" % k
+                    L.append("art file=%s x=%d y=%d w=%d h=%d when=%s_view:Empty" % (
+                        art("empty_%s.svg" % k, skin_art.empty_panel("e" + k, fw, rh, col)), x, y, fw, rh, k))
+                    L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_add img=%s when=%s_view:Empty' % (
+                        x + fw // 2, y + rh // 2, 230, bar - 8, sec["key"],
+                        art("add_%s.svg" % tid, skin_art.add_button("add" + tid, col, 230, bar - 8, "ADD " + sec["item"].upper())), k))
+                else:
+                    fpage = page
                 fx = 24 + skin_art.title_width(title) + 22   # model field: the rest of the header, up to 360 px
                 fwid, fh = min(360, fw - fx - 16), head - 10
-                L.append("art file=%s x=%d y=%d w=%d h=%d" % (
-                    art("panel_%s.svg" % k, skin_art.panel("p" + k, fw, rh, col, title, None, head)), x, y, fw, rh))
+                L.append("art file=%s x=%d y=%d w=%d h=%d%s" % (
+                    art("panel_%s.svg" % k, skin_art.panel("p" + k, fw, rh, col, "" if sec.get("paged") else title, None, head)),
+                    x, y, fw, rh, fpage if sec.get("paged") else ""))
+                if sec.get("paged"):
+                    L.append("readout cx=%d cy=%d w=%d h=40 key=%s_title box=0 tsize=28 tcolor=%s tweight=bold talign=left%s" % (
+                        x + 22 + (fx - 30) // 2, y + 5 + fh // 2, fx - 30, k, col, fpage))
+                    for j, kind in enumerate(("remove", "down", "up")):   # right to left in the header
+                        L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_%s img=%s%s' % (
+                            x + fw - 18 - skin_art.ICON_W // 2 - j * (skin_art.ICON_W + 10), y + 5 + fh // 2,
+                            skin_art.ICON_W, skin_art.ICON_H, k, kind,
+                            art("icon_%s_%s.svg" % (tid, kind), skin_art.icon_button("ic%s%s" % (tid, kind), col, kind)), fpage))
                 L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_browse get=%s_model tsize=30 tcolor=%s img=%s%s' % (
                     x + fx + fwid // 2, y + 5 + fh // 2, fwid, fh, k, k, light,
-                    art("field_%s.svg" % k, skin_art.field("f" + k, fwid, fh, col)), page))
+                    art("field_%s.svg" % k, skin_art.field("f" + k, fwid, fh, col)), fpage))
                 body = y + head + (rh - head) // 2
                 L.append('toggle cx=%d cy=%d key=%s_on img=%s img_on=%s w=%d h=%d ns=0%s' % (
-                    x + 64, body, k, fs_off, fs_on, skin_art.FS_W, skin_art.FS_H, page))
+                    x + 64, body, k, fs_off, fs_on, skin_art.FS_W, skin_art.FS_H, fpage))
                 kx0, kx1 = x + 118, x + fw - 14
                 step = (kx1 - kx0) / max(nk, 1)
                 r = 28 if step >= 96 else 25
                 cy = y + head + (rh - head - (2 * r + 83)) // 2 + r + 5   # knob, name and value centred in the body
                 for j in range(nk):
                     L.append("knob cx=%d cy=%d r=%d key=%s_k%d bw=%d ink_dim=%s%s" % (
-                        kx0 + step * (j + 0.5), cy, r, k, j + 1, min(int(step) - 4, 170), light, page))
+                        kx0 + step * (j + 0.5), cy, r, k, j + 1, min(int(step) - 4, 170), light, fpage))
                 firsts.append("%s_k1" % k)
                 rests += ["%s_k%d" % (k, j + 1) for j in range(1, nk)]
                 x += fw + gap
         # the model browser: title, arrows (only with more than one page of names), CLOSE, the names
         shown = " when=browse_%s:On" % tid
-        bx, by, bw, bh = 20, top, 1240, bottom - top
+        bx, by, bw, bh = 20, top0, 1240, bottom - top0
         L.append("art file=%s x=%d y=%d w=%d h=%d%s" % (
             art("browser_%s.svg" % tid, skin_art.browser_panel("br" + tid, bw, bh, col, head + 12)), bx, by, bw, bh, shown))
         L.append("readout cx=%d cy=%d w=760 h=44 key=browse_title box=0 tsize=34 tcolor=%s talign=left%s" % (
@@ -461,8 +506,9 @@ def main():
         slot0 = 0
         for si, s in enumerate(sections):
             ns = len(s.get("slots", [[s["key"], s["name"]]]))
-            f.write("    {%s, %s, %d, %d, %d, %d},\n" % (c(s["key"]), c(s["name"]), int(s.get("stereo", False)),
-                                                       max(knobs[si], 1), slot0, ns))
+            f.write("    {%s, %s, %d, %d, %d, %d, %d, %s},\n" % (c(s["key"]), c(s["name"]), int(s.get("stereo", False)),
+                                                               max(knobs[si], 1), slot0, ns, int(s.get("paged", 0)),
+                                                               c(s.get("item", s["name"]))))
             slot0 += ns
         f.write("};\nconst int NSECTIONS = %d;\n" % len(sections))
         f.write("const char *const SLOT_KEYS[] = { %s };\n" % ", ".join(c(k) for k, _, _ in slots))
@@ -514,6 +560,21 @@ def main():
     P.append({"key": "browse_title", "name": "Browser", "type": "readout", "display": "string"})
     for j in range(BROWSE_COLS * BROWSE_ROWS):
         P.append({"key": "brow_%d" % (j + 1), "name": "Model %d" % (j + 1), "type": "slot", "display": "string"})
+    # paged sections: add, page < >, the page's title, the arrows shown; per frame: what it shows (hidden while the
+    # page's browser is open, a slot, empty), its slot's title, move earlier / later, remove
+    for s in sections:
+        if not s.get("paged"):
+            continue
+        k, n = s["key"], s["name"]
+        for key, name in (("_add", " Add"), ("_prev", " Page <"), ("_next", " Page >")):
+            P.append({"key": k + key, "name": n + name, "type": "trigger", "momentary": True})
+        P.append({"key": k + "_title", "name": n + " Page", "type": "readout", "display": "string"})
+        P.append({"key": k + "_paged", "name": n + " Pages", "options": ["Off", "On"]})
+        for fk, fn in s["slots"]:
+            P.append({"key": fk + "_view", "name": fn + " View", "options": ["Hidden", "Slot", "Empty"]})
+            P.append({"key": fk + "_title", "name": fn + " Title", "type": "readout", "display": "string"})
+            for key, name in (("_up", " Earlier"), ("_down", " Later"), ("_remove", " Remove")):
+                P.append({"key": fk + key, "name": fn + name, "type": "trigger", "momentary": True})
     with gen_file(os.path.join(out, "params.json")) as f:
         json.dump({"name": cfg.get("name", "Stompbox"), "params": P, "sections": secs}, f, indent=1)
 
@@ -536,7 +597,7 @@ def main():
                                          "-I" + g + "/plugins", "-I" + g + "/faust-generated",
                                          "-I" + g + "/zita-resampler-1.1.0"]
     base["params"] = "params.json"
-    write_layout(os.path.join(out, "layout.conf"), cfg["tabs"], slots, knobs, by_section, os.path.join(REPO, "vst", "theme.conf"))
+    write_layout(os.path.join(out, "layout.conf"), cfg["tabs"], slots, knobs, sections, os.path.join(REPO, "vst", "theme.conf"))
     base["layout"] = "layout.conf"
     base["art"] = "html"
     with gen_file(os.path.join(out, "skin.css")) as f:
