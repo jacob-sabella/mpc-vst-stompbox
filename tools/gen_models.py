@@ -223,7 +223,7 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
             f.write(svg)
         return "art/" + name
 
-    top0, bottom, gap, head, bar = 92, 712, 12, 48, 52
+    top0, bottom, head, bar = 92, 712, 48, 46
     for t in tabs:
         tid, col = t["name"].lower(), t["color"]
         light = skin_art.mix(col, "ffffff", 0.35)
@@ -234,7 +234,7 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
         L.append("art file=%s" % art("bg_%s.svg" % tid, skin_art.background("bg" + tid, col)))
         rows = t["rows"]
         pg = [sections[slot[k][1]] for row in rows for k in row if k in slot and sections[slot[k][1]].get("paged")]
-        top = top0
+        top, gap = top0, 12
         if pg:   # the paged section's bar: its page title, < >, ADD
             sec = pg[0]
             add_w = 230
@@ -252,7 +252,8 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
             add_img = art("add_%s.svg" % tid, skin_art.add_button("add" + tid, col, add_w, bar - 8, "ADD " + sec["item"].upper()))
             L.append('button cx=%d cy=%d w=%d h=%d label="" key=%s_add img=%s%s' % (
                 1260 - 16 - add_w // 2, top + bar // 2, add_w, bar - 8, sec["key"], add_img, page))
-            top += bar + 8
+            top += bar + 6
+            gap = 8   # three frames under the bar: every pixel goes to the frames, so their knobs clear the header
         rh = (bottom - top - gap * (len(rows) - 1)) // len(rows)
         firsts, rests = [], []   # Q-Links: every slot's first knob, then the others in order
         for ri, row in enumerate(rows):
@@ -305,8 +306,11 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
                     x + 64, body, k, fs_off, fs_on, skin_art.FS_W, skin_art.FS_H, fpage))
                 kx0, kx1 = x + 118, x + fw - 14
                 step = (kx1 - kx0) / max(nk, 1)
-                r = 28 if step >= 96 else 25
-                cy = y + head + (rh - head - (2 * r + 83)) // 2 + r + 5   # knob, name and value centred in the body
+                # a knob's name and value hang below it: ring to value text is 2r + 71 px at label_scale 1.25 (shadow_skin's
+                # knob box); keep the ring 8 px under the header line and the text 6 px over the frame's bottom
+                body_h = rh - head
+                r = min(28 if step >= 96 else 25, (body_h - 85) // 2)
+                cy = y + head + max(8, (body_h - (2 * r + 77)) // 2) + r
                 for j in range(nk):
                     L.append("knob cx=%d cy=%d r=%d key=%s_k%d bw=%d ink_dim=%s%s" % (
                         kx0 + step * (j + 0.5), cy, r, k, j + 1, min(int(step) - 4, 170), light, fpage))
