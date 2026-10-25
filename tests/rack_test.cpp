@@ -3,6 +3,8 @@
  *   - every knob of every model moves to both ends without NaN or a blow-up
  *   - the default chain makes sound; switching models and slots on and off is click-free (crossfades)
  *   - silence after a loud chain decays to zero; state round-trips into a fresh instance; bad state is ignored
+ *   - every factory preset (the default rig, guitarix's banks converted) loads with no line left unmatched and plays;
+ *     the IR loader's partitioned convolver matches direct-form convolution
  * Prints each model's x86 cost per 128-frame block (relative numbers only; the device bench is tools/bench.sh)
  * and a list of models that came out silent, for a look by ear. Exit status = failures. */
 #include <algorithm>
@@ -19,6 +21,8 @@ extern "C" {
 #include "engine.h"
 }
 #include "models.h"
+
+float stompbox_conv_selftest();
 
 static int fails;
 #define CHECK(c, ...) do { if (c) { if (verbose) { printf("ok   " __VA_ARGS__); printf("\n"); } } else { printf("FAIL " __VA_ARGS__); printf("\n"); fails++; } } while (0)
@@ -62,6 +66,11 @@ static void set(const mpc_engine_t *e, void *p, const std::string &k, const std:
 static std::string get(const mpc_engine_t *e, void *p, const std::string &k) {
     char b[256] = { 0 };
     return e->get_param(p, k.c_str(), b, sizeof b) > 0 ? b : "";
+}
+/* wait for a factory preset the loader is building to be put in play (at most 20 s) */
+static void wait_loaded(const mpc_engine_t *e, void *p) {
+    for (int t = 0; t < 4000 && get(e, p, "loading") != "0"; t++) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    get(e, p, "display_rev");   /* the call that adopts it, if the loader finished after the last check */
 }
 /* pick a model and wait for the loader thread to build it (display_rev moves; at most 5 s for one already built).
  * Returns how long the set_param itself took: the audio waits that long under the wrapper's lock. */
@@ -118,7 +127,8 @@ int main(int argc, char **argv) {
                 /* a knob the model doesn't use: blank name and value (a space, never empty: the wrapper would fall back) */
                 CHECK(get(e, p, kj + "_display") == " ", "%s %s: unused knob %d reads blank", sk.c_str(), MODELS[mi].id, j);
             }
-            CHECK(named > 0 || !strcmp(MODELS[mi].id, "dcblocker"), "%s %s: has named knobs", sk.c_str(), MODELS[mi].id);
+            CHECK(named > 0 || !strcmp(MODELS[mi].id, "dcblocker") || !strcmp(MODELS[mi].id, "fizz"),   /* no controls */
+                  "%s %s: has named knobs", sk.c_str(), MODELS[mi].id);
             play(e, p, 20, 0.3f, &t);   /* the crossfade */
             Res r = play(e, p, 300, 0.3f, &t);
             CHECK(std::isfinite(r.rms) && r.peak <= 1.0, "%s: finite, bounded", MODELS[mi].id);
@@ -182,8 +192,7 @@ int main(int argc, char **argv) {
         std::vector<std::pair<std::string, int>> keys;   /* key, options (0: a 0..1 knob) */
         for (int s = 0; s < NSLOTS; s++) {
             std::string k = SLOT_KEYS[s];
-            int n = 0;
-            for (int m = 0; m < NMODELS; m++) if (MODELS[m].section == SLOT_SECTION[s]) n++;
+            int n = SECTION_MODELS_AT[SLOT_SECTION[s] + 1] - SECTION_MODELS_AT[SLOT_SECTION[s]];   /* all it offers */
             keys.push_back({k + "_model", n}); keys.push_back({k + "_on", 2});
             for (int j = 1; j <= SECTIONS[SLOT_SECTION[s]].nknobs; j++) keys.push_back({k + "_k" + std::to_string(j), 0});
         }
@@ -290,6 +299,11 @@ int main(int argc, char **argv) {
         e->set_param(q, "state", a);
         e->get_param(q, "state", b, sizeof b);
         CHECK(!strcmp(a, b), "seven pedals restore into a fresh instance");
+        if (strcmp(a, b)) {
+            FILE *f = fopen("build/state7_a.txt", "w"); fputs(a, f); fclose(f);
+            f = fopen("build/state7_b.txt", "w"); fputs(b, f); fclose(f);
+            printf("     (the two states are in build/state7_a.txt and build/state7_b.txt)\n");
+        }
         CHECK(get(e, q, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 7", "restored: seven pedals, page 1");
         /* a state from before pedals were paged: three */
         e->set_param(q, "state", "v=1\npedal1_model=od1\npedal2_on=1\n");
@@ -346,6 +360,54 @@ int main(int argc, char **argv) {
         e->set_param(q, "state", "garbage\n=\n.=.\npedal1.nope.x=3\namp_model=nope\npedal1_on=1\n\n\n");
         CHECK(get(e, q, "pedal1_on") == "1", "bad state lines are skipped, good ones applied");
         e->destroy(q);
+    }
+    /* the factory presets: each loads every line of its state, plays, and its state round-trips */
+    {
+        float d = stompbox_conv_selftest();
+        CHECK(d < 1e-4f, "the partitioned convolver matches direct form (largest difference %g)", d);
+        verbose = false;
+        int quiet = 0;
+        double worst_pick = 0;
+        for (int i = 0; i < NRACK_PRESETS; i++) {
+            std::string name = get(e, p, "preset:" + std::to_string(i));
+            CHECK(name == RACK_PRESETS[i].name, "preset %d is named (%s)", i, name.c_str());
+            auto t0 = std::chrono::steady_clock::now();
+            set(e, p, "preset", std::to_string(i));
+            worst_pick = std::max(worst_pick, std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count());
+            wait_loaded(e, p);
+            CHECK(get(e, p, "state_misses") == "0", "preset %d (%s): every line matched (%s missed)", i, name.c_str(),
+                  get(e, p, "state_misses").c_str());
+            CHECK(get(e, p, "preset") == std::to_string(i), "preset %d is the current one", i);
+            long tp = 0;
+            play(e, p, 40, 0.3f, &tp);
+            Res r = play(e, p, 300, 0.3f, &tp);
+            CHECK(std::isfinite(r.rms) && r.peak <= 1.0, "preset %d (%s): finite, bounded", i, name.c_str());
+            printf("     preset %2d %-26s rms %.4f  peak %.3f  %6.1f us/block\n", i, name.c_str(), r.rms, r.peak, r.us);
+            if (r.rms < 0.002) quiet++;
+            static char a[65536], b[65536];
+            e->get_param(p, "state", a, sizeof a);
+            void *q = e->create(nullptr);
+            e->set_param(q, "state", a);
+            e->get_param(q, "state", b, sizeof b);
+            CHECK(!strcmp(a, b) && get(e, q, "state_misses") == "0", "preset %d's state round-trips", i);
+            e->destroy(q);
+        }
+        verbose = true;
+        CHECK(quiet == 0, "every preset makes sound (%d quiet)", quiet);
+        CHECK(worst_pick < 1.0, "picking a preset never blocks (longest set_param %.3f ms)", worst_pick);
+        /* a pick plays the old rig until the new one is built; a newer pick or a state overtakes one being built */
+        set(e, p, "preset", "4");
+        set(e, p, "preset", "0");
+        wait_loaded(e, p);
+        CHECK(get(e, p, "post_title") == "No Post FX", "a newer preset overtakes one being built");
+        set(e, p, "preset", "4");
+        e->set_param(p, "state", RACK_PRESETS[0].state);
+        wait_loaded(e, p);
+        CHECK(get(e, p, "post_title") == "No Post FX", "a state overtakes a preset being built");
+        set(e, p, "preset", "0");
+        wait_loaded(e, p);
+        CHECK(get(e, p, "pedal_title") == "Pedals 1\xe2\x80\x93" "3 of 3" && get(e, p, "post_title") == "No Post FX",
+              "preset 0 is the default rig (\"%s\", \"%s\")", get(e, p, "pedal_title").c_str(), get(e, p, "post_title").c_str());
     }
     e->destroy(p);
     printf(fails ? "FAILED (%d)\n" : "PASSED\n", fails);

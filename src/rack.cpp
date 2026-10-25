@@ -1,7 +1,7 @@
 /* Stompbox: a guitar rack as one MPC insert effect, hosting guitarix and GxPlugins modules (models.json).
  *
- *   input gain -> [mono: gate, comp, wah, pedals, amp, tone stack, power amp, cabinet]
- *              -> [stereo: mod, delay, reverb, EQ] -> output gain
+ *   input gain -> [mono: gate, comp, wah, pedals, amp, tone stack, power amp, cabinet, post FX]
+ *              -> [stereo: mod, delay, reverb, EQ] -> output gain -> guitarix's output limiter
  *
  * Each slot has a model picker, an on switch and generic knobs (<slot>_k1..kN, 0..1) that take the names, ranges and
  * value text of the chosen model's controls (get_param "<key>_name" / "<key>_display"). A model is loaded the first
@@ -9,7 +9,8 @@
  * summed into the mono part; a mono model in the stereo part runs once per side. Switching a slot on or off, or its
  * model, crossfades over 5 ms. State ("state"): every slot's model and settings by upstream control id.
  *
- * A paged section (models.json "paged": the pedals) holds any number of slots, up to its maximum: "<section>_add"
+ * A section's slots offer its own models and those of the sections it accepts (models.json "accepts": the pedals and
+ * post FX take any model). A paged section (models.json "paged": the pedals, the post FX) holds any number of slots, up to its maximum: "<section>_add"
  * appends one, "<frame>_up" / "_down" / "_remove" move or drop the one in a frame, and its parameter frames
  * ("pedal1".."pedal3") show a page of them ("<section>_prev" / "_next"), so a frame's keys address the slot on the
  * page shown. A removed slot fades out before it is dropped.
@@ -17,7 +18,9 @@
  * Loading a model (allocation, tables, an impulse response) takes far longer than an audio block, and every engine
  * call runs under the wrapper's lock, so a model picked on the screen or a Q-Link is built by a loader thread: the slot
  * plays its old model until the new one is ready, then crossfades, and "display_rev" moves so the wrapper re-reads the
- * knob names (HAS_DISPLAY_REV). Creating the rack and restoring state load in the caller's thread. Clearing a model
+ * knob names (HAS_DISPLAY_REV). A factory preset ("preset", MPC's PRESET menu) is built whole by the loader too, while
+ * the old rig plays, and put in play by the next engine call after it is ready. Creating the rack and restoring a
+ * project's state load in the caller's thread. Clearing a model
  * (its delay lines, before it fades in again) is the loader's job too: a slot that has faded out asks for it, and a slot
  * fades in only from a clean model. */
 #include <algorithm>
@@ -71,6 +74,12 @@ struct Group {                   /* a section's slots, in chain order (removed o
     int page = 0;                /* paged: the page of frames shown */
 };
 
+struct Rig {                     /* a state built into slots, before it is put in play */
+    std::vector<Group> groups;
+    float input_db = 0, output_db = 0;
+    int misses = 0;
+};
+
 struct Rack {
     std::vector<Group> groups;   /* per section */
     std::vector<SlotP> chain;    /* every group's slots in signal order: what the audio thread runs */
@@ -80,11 +89,17 @@ struct Rack {
     std::mutex lk;
     std::condition_variable cv;
     std::vector<std::pair<SlotP, int>> queue;
+    std::string rig_txt;               /* a factory preset for the loader to build (empty: none) */
+    std::unique_ptr<Rig> rig_done;     /* the loader's finished one, for the engine thread to put in play */
+    int rig_gen = 0;                   /* moved by every state and preset: a build overtaken by a newer one is dropped */
+    bool building = false;             /* the loader is building one */
     bool stop = false;
     std::atomic<int> rev{0};
     SlotP br;                    /* the model browser: the slot it picks for (null: closed) */
     int br_page = 0;             /* the page shown */
     std::string trig;            /* the last trigger and when (a repeat within REPEAT_MS is dropped) */
+    int preset = 0;              /* the factory preset last picked (RACK_PRESETS) */
+    int misses = 0;              /* the last state's lines that matched no slot, model or control (the tests read it) */
     std::chrono::steady_clock::time_point trig_t{};
 };
 
@@ -172,11 +187,27 @@ static bool post_clear(Rack *r, const SlotP &s, int k) {
     return true;
 }
 
+static std::unique_ptr<Rig> build_rig(const char *txt);
+
 static void loader_main(Rack *r) {
     std::unique_lock<std::mutex> g(r->lk);
     for (;;) {
-        r->cv.wait(g, [r] { return r->stop || !r->queue.empty(); });
+        r->cv.wait(g, [r] { return r->stop || !r->queue.empty() || !r->rig_txt.empty(); });
         if (r->stop) return;
+        if (!r->rig_txt.empty()) {   /* a factory preset: build the whole rig, then hand it over */
+            std::string txt;
+            txt.swap(r->rig_txt);
+            int gen = r->rig_gen;
+            r->building = true;
+            g.unlock();
+            std::unique_ptr<Rig> rig = build_rig(txt.c_str());
+            g.lock();
+            r->building = false;
+            if (gen == r->rig_gen) r->rig_done = std::move(rig);
+            else { g.unlock(); rig.reset(); g.lock(); }   /* overtaken: free it outside the lock */
+            r->rev.fetch_add(1, std::memory_order_release);   /* the wrapper polls display_rev: that call adopts it */
+            continue;
+        }
         auto job = r->queue.front();
         r->queue.erase(r->queue.begin());
         g.unlock();
@@ -217,7 +248,7 @@ static SlotP new_slot(int sec, int d) {
     s->tab = SLOT_TAB[d];
     s->key = SLOT_KEYS[d];
     s->name = SLOT_NAMES[d];
-    for (int m = 0; m < NMODELS; m++) if (MODELS[m].section == sec) s->models.push_back(m);
+    for (int j = SECTION_MODELS_AT[sec]; j < SECTION_MODELS_AT[sec + 1]; j++) s->models.push_back(SECTION_MODELS[j]);
     s->loaded.reset(new std::atomic<Loaded *>[s->models.size()]);
     for (size_t k = 0; k < s->models.size(); k++) s->loaded[k].store(nullptr);
     s->cur = s->want = SLOT_DEFAULT_MODEL[d];
@@ -237,13 +268,16 @@ static int pages(const Rack *r, int sec) {
 }
 
 /* after a change to a paged group: number its slots by position ("pedal3", "Pedal 3"), keep its page in range */
-static void renumber(Rack *r, int sec) {
-    Group &g = r->groups[sec];
+static void renumber_group(Group &g, int sec) {
     auto v = live(g);
     for (size_t i = 0; i < v.size(); i++) {
         v[i]->key = std::string(SECTIONS[sec].key) + std::to_string(i + 1);
         v[i]->name = std::string(SECTIONS[sec].item) + " " + std::to_string(i + 1);
     }
+}
+static void renumber(Rack *r, int sec) {
+    Group &g = r->groups[sec];
+    renumber_group(g, sec);
     int np = pages(r, sec);
     if (g.page >= np) g.page = np - 1;
     if (g.page < 0) g.page = 0;
@@ -351,12 +385,15 @@ static void move_slot(Rack *r, int sec, const SlotP &s, int by) {   /* by -1: ea
 }
 
 static void set_state(Rack *r, const char *txt);
+static void adopt(Rack *r);
 
 static void *rk_create(const char *) {
     Rack *r = new Rack();
     r->queue.reserve(256);
     r->groups.resize(NSECTIONS);
     for (int i = 0; i < NSLOTS; i++) {
+        const section_t &sec = SECTIONS[SLOT_SECTION[i]];
+        if (sec.paged && i - sec.slot >= sec.start) continue;   /* a paged section starts with its "start" slots */
         SlotP s = new_slot(SLOT_SECTION[i], i);
         build(*s, s->want);
         playing(*s);
@@ -421,7 +458,16 @@ static void rk_set(void *p, const char *key, const char *val) {
     Rack *r = (Rack *)p;
     if (!val) return;
     reap(r);
+    adopt(r);
     if (!strcmp(key, "state")) { set_state(r, val); return; }
+    if (!strcmp(key, "preset")) {   /* a factory preset: the loader builds it, the old rig plays until it is ready */
+        int i = atoi(val);
+        if (i < 0 || i >= NRACK_PRESETS) return;
+        r->preset = i;
+        { std::lock_guard<std::mutex> g(r->lk); r->rig_gen++; r->rig_txt = RACK_PRESETS[i].state; r->rig_done.reset(); }
+        r->cv.notify_one();
+        return;
+    }
     if (!strcmp(key, "input")) { r->input_db = (float)atof(val); return; }
     if (!strcmp(key, "output")) { r->output_db = (float)atof(val); return; }
     bool on, press = atof(val) >= 0.5;
@@ -473,7 +519,7 @@ static void rk_set(void *p, const char *key, const char *val) {
         int k = atoi(rest + 1) - 1;
         Loaded *l = shown(s);
         Module *m = l ? l->a : nullptr;
-        if (m && k >= 0 && k < m->nparams()) set_both(l, k, to_real(m->param(k), (float)atof(val)));
+        if (m && k >= 0 && k < m->nshown()) set_both(l, k, to_real(m->param(k), (float)atof(val)));
     }
 }
 
@@ -483,10 +529,21 @@ static int rk_get(void *p, const char *key, char *buf, int len) {
     Rack *r = (Rack *)p;
     if (len <= 0) return 0;
     reap(r);
+    adopt(r);
     if (!strcmp(key, "state")) return get_state(r, buf, len);
     if (!strcmp(key, "input")) return snprintf(buf, len, "%g", r->input_db);
     if (!strcmp(key, "output")) return snprintf(buf, len, "%g", r->output_db);
     if (!strcmp(key, "display_rev")) return snprintf(buf, len, "%d", r->rev.load(std::memory_order_acquire));
+    if (!strcmp(key, "preset")) return snprintf(buf, len, "%d", r->preset);
+    if (!strncmp(key, "preset:", 7)) {   /* a preset's name, for MPC's PRESET menu */
+        int i = atoi(key + 7);
+        return i >= 0 && i < NRACK_PRESETS ? snprintf(buf, len, "%s", RACK_PRESETS[i].name) : 0;
+    }
+    if (!strcmp(key, "state_misses")) return snprintf(buf, len, "%d", r->misses);
+    if (!strcmp(key, "loading")) {   /* a factory preset still being built (the tests wait on it) */
+        std::lock_guard<std::mutex> g(r->lk);
+        return snprintf(buf, len, "%d", !r->rig_txt.empty() || r->rig_done || r->building);
+    }
     bool on;
     if (!strncmp(key, "brow_", 5)) {
         int k = br_row(r, key, &on);
@@ -551,7 +608,7 @@ static int rk_get(void *p, const char *key, char *buf, int len) {
         char *e;
         int k = (int)strtol(rest + 1, &e, 10) - 1;
         Module *m = current(s);
-        bool has = m && k >= 0 && k < m->nparams();
+        bool has = m && k >= 0 && k < m->nshown();
         // a knob the model doesn't use reads blank: a space, since an empty answer makes the wrapper fall back to
         // the parameter's own name ("Gate 5") and a number
         if (!strcmp(e, "_name")) return snprintf(buf, len, "%s", has ? m->param(k).name.c_str() : " ");
@@ -602,12 +659,10 @@ static int get_state(Rack *r, char *buf, int len) {
     return o;
 }
 
-static SlotP state_slot(Rack *r, const std::string &key) {
-    for (auto &s : r->chain) if (!s->gone && s->key == key) return s;
-    return nullptr;
-}
-
-static void set_state(Rack *r, const char *txt) {
+/* a state turned into a whole new rig: fresh slots, their models built and set. Any thread: it touches nothing of
+ * the rack's, so a factory preset is built by the loader while the old rig plays on, then swapped in (adopt()). */
+static std::unique_ptr<Rig> build_rig(const char *txt) {
+    std::unique_ptr<Rig> rig(new Rig());
     std::vector<std::pair<std::string, std::string>> kv;
     std::string line;
     for (const char *t = txt;; t++) {
@@ -617,46 +672,83 @@ static void set_state(Rack *r, const char *txt) {
         line.clear();
         if (!*t) break;
     }
-    /* paged sections start over with the count saved (a state from before they were paged: their frame count) */
-    r->br.reset();
+    /* a state says every slot's model and on switch but only the controls off their defaults: every slot starts
+     * fresh, and paged sections with the count saved (a state from before they were paged: their frame count) */
+    rig->groups.resize(NSECTIONS);
     for (int sec = 0; sec < NSECTIONS; sec++) {
-        if (!paged(sec)) continue;
-        int n = frames(sec);
+        Group &g = rig->groups[sec];
+        if (!paged(sec)) {
+            for (int i = 0; i < frames(sec); i++) g.list.push_back(new_slot(sec, SECTIONS[sec].slot + i));
+            continue;
+        }
+        int n = SECTIONS[sec].start;
         for (auto &x : kv)
             if (x.first == std::string(SECTIONS[sec].key) + "_count") n = atoi(x.second.c_str());
         n = std::max(0, std::min(n, SECTIONS[sec].paged));
-        Group &g = r->groups[sec];
-        g.list.clear();
-        g.page = 0;
         for (int i = 0; i < n; i++) g.list.push_back(new_slot(sec, SECTIONS[sec].slot + std::min(i, frames(sec) - 1)));
-        renumber(r, sec);
+        renumber_group(g, sec);
     }
-    relink(r);
+    auto slot = [&](const std::string &key) -> SlotP {
+        for (auto &g : rig->groups) for (auto &s : g.list) if (s->key == key) return s;
+        return nullptr;
+    };
     for (auto &x : kv) {
         const std::string &k = x.first, &v = x.second;
         size_t d1 = k.find('.');
         if (d1 != std::string::npos) {   /* <slot>.<model>.<control> */
             size_t d2 = k.find('.', d1 + 1);
-            SlotP s = d2 == std::string::npos ? nullptr : state_slot(r, k.substr(0, d1));
-            if (!s) continue;
-            int mk = model_by_id(*s, k.substr(d1 + 1, d2 - d1 - 1).c_str());
-            if (mk < 0) continue;
-            Loaded *l = build(*s, mk);   /* restoring state may wait: a project is loading */
+            SlotP s = d2 == std::string::npos ? nullptr : slot(k.substr(0, d1));
+            int mk = s ? model_by_id(*s, k.substr(d1 + 1, d2 - d1 - 1).c_str()) : -1;
+            if (mk < 0) { rig->misses++; continue; }
+            Loaded *l = build(*s, mk);
             int pk = l->a ? l->a->find(k.substr(d2 + 1).c_str()) : -1;
-            if (pk >= 0) set_both(l, pk, (float)atof(v.c_str()));
-        } else if (k == "input") r->input_db = (float)atof(v.c_str());
-        else if (k == "output") r->output_db = (float)atof(v.c_str());
+            float f;
+            if (pk >= 0 && l->a->parse(pk, v.c_str(), &f)) set_both(l, pk, f);
+            else rig->misses++;
+        } else if (k == "input") rig->input_db = (float)atof(v.c_str());
+        else if (k == "output") rig->output_db = (float)atof(v.c_str());
         else if (k.size() > 6 && !k.compare(k.size() - 6, 6, "_model")) {
-            SlotP s = state_slot(r, k.substr(0, k.size() - 6));
+            SlotP s = slot(k.substr(0, k.size() - 6));
             int mk = s ? model_by_id(*s, v.c_str()) : -1;
             if (mk >= 0) s->want = mk;
+            else rig->misses++;
         } else if (k.size() > 3 && !k.compare(k.size() - 3, 3, "_on")) {
-            SlotP s = state_slot(r, k.substr(0, k.size() - 3));
+            SlotP s = slot(k.substr(0, k.size() - 3));
             if (s) s->on = atoi(v.c_str()) ? 1 : 0;
-        }
+            else rig->misses++;
+        } else if (k != "v" && (k.size() < 6 || k.compare(k.size() - 6, 6, "_count"))) rig->misses++;
     }
-    for (auto &s : r->chain) { build(*s, s->want); s->cur = s->want; playing(*s); }
+    for (auto &g : rig->groups) for (auto &s : g.list) { build(*s, s->want); s->cur = s->want; }
+    return rig;
+}
+
+/* engine calls only: put a built rig in play (the old one's slots go when the loader's queue lets go of them) */
+static void install(Rack *r, std::unique_ptr<Rig> rig) {
+    r->br.reset();
+    r->groups.swap(rig->groups);
+    r->input_db = rig->input_db;
+    r->output_db = rig->output_db;
+    r->misses = rig->misses;
+    relink(r);
+    for (auto &s : r->chain) playing(*s);
     touched(r);
+}
+
+/* restoring a project's state waits for its models (a project is loading); a newer state drops a preset being built */
+static void set_state(Rack *r, const char *txt) {
+    { std::lock_guard<std::mutex> g(r->lk); r->rig_gen++; r->rig_txt.clear(); r->rig_done.reset(); }
+    install(r, build_rig(txt));
+}
+
+/* engine calls only: a factory preset the loader has finished replaces the rig */
+static void adopt(Rack *r) {
+    std::unique_ptr<Rig> rig;
+    {
+        std::lock_guard<std::mutex> g(r->lk);   /* the loader only holds it to take or hand over a job */
+        if (!r->rig_done) return;
+        rig = std::move(r->rig_done);
+    }
+    install(r, std::move(rig));
 }
 
 /* ---- audio */
@@ -712,7 +804,11 @@ double stompbox_prof[64];
 int stompbox_prof_model[64];
 #endif
 
+/* the output: guitarix's own last stage (faust-generated/hardlim.cc), unchanged below -1 dBFS and bending smoothly
+ * toward full scale above it, then 16 bits */
 static int16_t s16(float f) {
+    float a = fabsf(f);
+    if (a > 0.8912509f) f = copysignf(1.f - 0.10874906f * expf(-9.1954816f * (a - 0.8912509f)), f);
     f *= 32768.f;
     return f >= 32767.f ? 32767 : f <= -32768.f ? -32768 : (int16_t)lrintf(f);
 }

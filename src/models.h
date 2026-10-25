@@ -8,7 +8,7 @@
 struct PluginDef;
 
 enum { MK_GX, MK_LV2, MK_BUILTIN };
-enum { BI_GATE, BI_CAB };   /* modules written here (rack.cpp), not upstream */
+enum { BI_GATE, BI_CAB, BI_PRE, BI_PRESENCE, BI_IR };   /* modules written here (builtins.cpp), not upstream */
 
 struct lv2_port_t {
     int index;
@@ -42,6 +42,7 @@ struct section_t {
     int nslots;      /* its parameter frames: its slots, or for a paged section the frames a page shows */
     int paged;       /* 0: a fixed section; else the most slots it can hold (models.json "paged") */
     const char *item;   /* paged: one slot's name ("Pedal": "Pedal 4") */
+    int start;          /* paged: the slots a new rig has */
 };
 
 extern const model_t MODELS[];
@@ -57,4 +58,20 @@ extern const int SLOT_DEFAULT_ON[];
 extern const int SLOT_TAB[];             /* per slot: the skin page it is on (models.json "tabs") */
 extern const char *const TAB_KEYS[];     /* per page: "browse_<key>" is On while that page's model browser is open */
 extern const int NTABS;
-extern const int BROWSE_ROWS;            /* model names per browser page ("brow_1".."brow_<n>") */
+extern const int BROWSE_ROWS;
+/* per section, the models its slots offer (indices into MODELS): its own, then those of the sections it accepts
+ * (models.json "accepts"); section s's are SECTION_MODELS[SECTION_MODELS_AT[s] .. SECTION_MODELS_AT[s + 1]) */
+extern const int SECTION_MODELS[];
+extern const int SECTION_MODELS_AT[];            /* model names per browser page ("brow_1".."brow_<n>") */
+
+/* factory presets (tools/gx_bank.py: guitarix's factory banks, converted at build time): a name and a state text,
+ * the first one the default rig */
+struct rack_preset_t { const char *name, *state; };
+extern const rack_preset_t RACK_PRESETS[];
+extern const int NRACK_PRESETS;
+
+/* the impulse responses the IR loader offers (guitarix's trunk/IR files, in the .so): the id guitarix's presets name
+ * one by ("amps/<file>"), a neutral name for the screen, the file's bytes */
+struct ir_file_t { const char *id, *label; const unsigned char *data; unsigned size; };
+extern const ir_file_t IR_FILES[];
+extern const int NIR_FILES;

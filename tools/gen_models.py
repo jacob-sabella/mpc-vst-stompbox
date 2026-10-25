@@ -8,18 +8,26 @@ models.json (ours, the only list of what the rack offers):
     "sections": [{"key", "name", "stereo": bool, "slots": [[key, name], ...]}]   chain order; a section may have
                  several slots (pedal slots share the pedal models). With "paged": N and "item": name it holds any
                  number of slots up to N, added and removed on the screen, and its "slots" are the frames that show
-                 a page of them
+                 a page of them; "start": n slots a new rig has (default: its frames). "accepts": [section keys] or "all"
+                 offers those sections' models in its slots too, after its own
     "models":   [{"id", "name", "section",
                   one of  "gx": "<path under guitarix/trunk/src>"   a guitarix PluginDef module (faust-generated/x.cc,
                                                                     plugins/generated/x.cc)
                           "lv2": "<GxPlugins bundle>"               a GxPlugins pedal (e.g. "GxSD1.lv2"), built from its
                                                                     own LV2 wrapper
-                          "builtin": "gate" | "cab"                 written here (src/builtins.cpp)
+                          "builtin": "gate" | "cab" | "pre" | "presence" | "ir"   written here (src/builtins.cpp)
                   optional "show": [ids]    controls to offer, in order (default: all)
                           "names": {id: label}  labels for controls (upstream leaves some empty)
                           "hide":  [ids]    LV2 controls not to offer (a bypass port is always hidden)
-                          "factory": name   gx: the module's factory function, when it is not plugin()
-                          "defines": [...]  gx: macros for that module's own translation unit}]
+                          "factory": name   gx: the module's factory function, when it is not plugin() (with "::",
+                                            the qualified name, when its namespaces can't be read off the file)
+                          "defines": [...]  gx: macros for that module's own translation unit
+                          "zeroed": "ns::Class(args)"  gx: build the module in zeroed memory with that constructor,
+                                            not its factory (upstream reads members it never sets: guitarix's own
+                                            instances are zeroed statics)
+                          "unit": id        the guitarix unit id presets name it by, when its file registers several
+                          "alone": true     gx: a translation unit of its own without the faust support header (the
+                                            module includes what it needs)}]
     "tabs":     [{"name", "rows": [[slot key, ...], ...]}]   the skin's pages: each row is a frame per slot (model
                  popup, on/off, knobs); "rack" is the input and output levels. vst/theme.conf gives the colours.
 
@@ -36,6 +44,7 @@ import re
 import shutil
 import sys
 
+import gx_bank
 import skin_art
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -152,6 +161,10 @@ def gx_info(up, path, factory="plugin"):
     """-> (qualified factory function, includes its own support header, file)"""
     f = os.path.join(up, "guitarix", "trunk", "src", path)
     s = open(f, errors="ignore").read()
+    if "::" in factory:
+        if not re.search(r"PluginDef\s*\*\s*" + factory.split("::")[-1] + r"\s*\(\s*\)", s):
+            sys.exit("%s: no %s() factory" % (path, factory))
+        return factory, '"gx_faust_support.h"' in s, os.path.relpath(f, REPO)
     ns = re.findall(r"^\s*namespace\s+(\w+)\s*\{", s, re.M)
     if not ns:
         sys.exit("%s: no namespace" % path)
@@ -180,6 +193,38 @@ class gen_file(io.StringIO):
             with open(self.path, "w") as f:
                 f.write(new)
         return super().__exit__(*a)
+
+
+def gx_unit(f):
+    """-> (the guitarix unit ids a module registers as, its control ids): what a guitarix preset names them by"""
+    s = open(f, errors="ignore").read()
+    ids = list(dict.fromkeys(re.findall(r'\bid\s*=\s*"([^"]+)"', s)))
+    macro = dict(re.findall(r'#define\s+(\w+)\(p\)\s*\("([^"]*)"\s*"\."\s*p\)', s))   # #define PARAM(p) ("X" "." p)
+    params = []
+    for r in re.finditer(r'register(?:Float|Int|Bool|Enum|NonMidiFloat)Var\(\s*(?:"([^"]+)"|(\w+)\("([^"]+)"\))', s):
+        pid = r.group(1) or (macro.get(r.group(2), "") + "." + r.group(3))
+        if pid not in params:
+            params.append(pid)
+    return ids, params
+
+
+def gx_select_table(up, kind):
+    """guitarix's built-in impulse responses by the names its presets select them by: {"4x12": "cab_data_4x12"}"""
+    s = open(os.path.join(up, "guitarix", "trunk", "src", "gx_head", "engine", "gx_internal_plugins.cpp"), errors="ignore").read()
+    return dict(re.findall(r'\{\s*"([^"]+)",\s*N_\("[^"]*"\),\s*&static_cast<%s&>\((\w+)\)\s*\}' % kind, s))
+
+
+def ir_files(up):
+    """the impulse responses guitarix ships (trunk/IR), by the ids its convolver presets name them with
+    ("amps/<file>", "bands/<file>", "<file>"), and neutral labels for the screen"""
+    root = os.path.join(up, "guitarix", "trunk", "IR")
+    out = []
+    for sub, pre, label in (("", "", "Hall"), ("BestPlugins_Amps", "amps/", "Amp"), ("BestPlugins_Bands", "bands/", "Band")):
+        d = os.path.join(root, sub)
+        fs = sorted(f for f in os.listdir(d) if f.lower().endswith(".wav"))
+        for i, f in enumerate(fs):
+            out.append((pre + f, label if len(fs) == 1 else "%s %d" % (label, i + 1), os.path.join(d, f)))
+    return out
 
 
 def uses_valve(f):
@@ -345,6 +390,29 @@ def write_layout(path, tabs, slots, knobs, sections, theme):
         f.write("# generated by tools/gen_models.py from models.json \"tabs\" and vst/theme.conf\n" + "\n".join(L))
 
 
+def lock_params(P, out):
+    """vst/params.lock (committed): the VST parameter keys in index order. MPC keeps Q-Link maps and automation by index,
+    and build/ is thrown away, so the lock the port builder keeps next to the generated vst.json is checked against this
+    one first: a key that moved fails here, new keys at the end extend it. GEN_VST_RELOCK=1 accepts a break."""
+    path = os.path.join(REPO, "vst", "params.lock")
+    keys = [p["key"] for p in P]
+    if os.path.exists(path) and os.environ.get("GEN_VST_RELOCK") != "1":
+        locked = open(path).read().split()
+        for i, k in enumerate(locked):
+            if i < len(keys) and keys[i] != k:
+                sys.exit("vst/params.lock: parameter %d was %r and is now %r: append new params at the end, never insert "
+                         "or reorder (GEN_VST_RELOCK=1 to accept the break)" % (i, k, keys[i]))
+        if len(keys) < len(locked):
+            print("warning: vst/params.lock: %d locked key(s) are gone from the end" % (len(locked) - len(keys)),
+                  file=sys.stderr)
+            keys = locked
+    text = "".join(k + "\n" for k in keys)
+    if not os.path.exists(path) or open(path).read() != text:
+        open(path, "w").write(text)
+    with open(os.path.join(out, "params.lock"), "w") as f:
+        f.write(text)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--upstream", default=os.path.join(REPO, "build", "upstream"))
@@ -379,6 +447,8 @@ def main():
             slots.append((k, n, si))
 
     sources = []
+    catalog = {"models": [], "sections": sections, "cab": gx_select_table(up, "CabDesc"),
+               "pre": gx_select_table(up, "PreDesc")}
     decls = []
     model_rows = []
     port_tables = []
@@ -387,6 +457,7 @@ def main():
     by_section = [[] for _ in sections]
     seen = set()
 
+    own_units = {}     # (file, macros, alone) -> (its unit, its text)
     valve_group = []   # modules using valve.h, which defines its tube tables as plain globals: all in one unit
 
     def flush_faust(group=faust_group, name=None):
@@ -395,8 +466,10 @@ def main():
         n = len([x for x in sources if os.path.basename(x).startswith("gx_")])
         fn = os.path.join(out, name or "gx_%02d.cpp" % n)
         with gen_file(fn) as f:
+            # the standard headers a module may include come first: the support header's min/max macros would break them
             f.write("// generated by tools/gen_models.py: guitarix modules, unchanged\n#define _(s) (s)\n"
-                    "#include <string.h>\n#include \"gx_faust_support.h\"\n#include \"gx_plugin.h\"\n")
+                    "#include <string.h>\n#include <algorithm>\n#include <string>\n#include <cmath>\n"
+                    "#include \"gx_faust_support.h\"\n#include \"gx_plugin.h\"\n")
             for mid, qual, path in group:
                 f.write('#include "%s"\n' % path)
             for mid, qual, path in group:
@@ -419,15 +492,25 @@ def main():
             qual, own_support, path = gx_info(up, m["gx"], m.get("factory", "plugin"))
             decls.append("PluginDef *gxm_%s();" % mid)
             row.update(kind="MK_GX", gx="gxm_" + mid)
-            if own_support or m.get("defines"):   # includes the (unguarded) support header itself: a unit of its own
-                fn = os.path.join(out, "gxp_%s.cpp" % mid)
-                with gen_file(fn) as f:
-                    f.write("// generated by tools/gen_models.py: a guitarix module, unchanged\n#define _(s) (s)\n")
-                    f.write("".join("#define %s\n" % d for d in m.get("defines", [])))
-                    if not own_support:
-                        f.write('#include "gx_faust_support.h"\n#include "gx_plugin.h"\n')
-                    f.write("#include <string.h>\n#include \"%s\"\nPluginDef *gxm_%s() { return %s(); }\n" % (path, mid, qual))
-                sources.append(fn)
+            if m.get("alone") or own_support or m.get("defines"):
+                # a unit of its own: it brings its own headers (alone: and a library the support header's macros would
+                # break), or includes the (unguarded) support header itself, or needs macros. Models of one file with
+                # the same macros share it (the file's own symbols, once).
+                key = (path, tuple(m.get("defines", [])), bool(m.get("alone")))
+                if key not in own_units:
+                    head = "// generated by tools/gen_models.py: a guitarix module, unchanged\n#define _(s) (s)\n"
+                    head += "".join("#define %s\n" % d for d in m.get("defines", []))
+                    if not own_support and not m.get("alone"):
+                        head += '#include "gx_faust_support.h"\n#include "gx_plugin.h"\n'
+                    head += "#include <string.h>\n#include <new>\n#include \"%s\"\n" % path
+                    own_units[key] = (os.path.join(out, "gxp_%s.cpp" % mid), [head])
+                    sources.append(own_units[key][0])
+                if m.get("zeroed"):
+                    cls = m["zeroed"].split("(")[0]
+                    own_units[key][1].append("PluginDef *gxm_%s() {\n    void *m = ::operator new(sizeof(%s));\n"
+                                             "    memset(m, 0, sizeof(%s));\n    return new (m) %s;\n}\n" % (mid, cls, cls, m["zeroed"]))
+                else:
+                    own_units[key][1].append("PluginDef *gxm_%s() { return %s(); }\n" % (mid, qual))
             elif uses_valve(os.path.join(REPO, path)):
                 valve_group.append((mid, qual, path))
             else:
@@ -485,9 +568,10 @@ def main():
                        aout="{%d, %d}" % (aout[0], aout[1] if len(aout) > 1 else -1))
             nk = len(shown)
         elif "builtin" in m:
-            row["builtin"] = {"gate": "BI_GATE", "cab": "BI_CAB"}[m["builtin"]]
+            row["builtin"] = {"gate": "BI_GATE", "cab": "BI_CAB", "pre": "BI_PRE", "presence": "BI_PRESENCE",
+                              "ir": "BI_IR"}[m["builtin"]]
             row["arg"] = m.get("ir")
-            nk = m.get("knobs", 6)
+            nk = m.get("knobs", {"gate": 4, "cab": 3, "pre": 3, "presence": 1, "ir": 3}[m["builtin"]])
         else:
             sys.exit("models.json: %s has no gx, lv2 or builtin" % m["id"])
         if nk > MAX_KNOBS:
@@ -495,8 +579,52 @@ def main():
         knobs[si] = max(knobs[si], nk)
         by_section[si].append(m["name"])
         model_rows.append(row)
+        units, params = gx_unit(os.path.join(REPO, path)) if "gx" in m else ([m.get("unit", m.get("builtin"))], [])
+        if "gx" in m and "unit" in m:
+            units = [m["unit"]]
+        catalog["models"].append({"id": m["id"], "name": m["name"], "section": m["section"], "kind": row["kind"],
+                                  "units": units, "params": params, "builtin": m.get("builtin"), "ir": m.get("ir")})
     flush_faust()
     flush_faust(valve_group, "gx_valve.cpp")
+    for fn, text in own_units.values():
+        with gen_file(fn) as f:
+            f.write("".join(text))
+
+    # what each section's slots offer: its own models, then those of the sections it accepts. A slot's knobs follow
+    # the most any of them has.
+    offers = []
+    for si, sec in enumerate(sections):
+        acc = sec.get("accepts", [])
+        acc = [k for k in (skeys if acc == "all" else acc) if k != sec["key"]]   # its own come first anyway
+        bad = [k for k in acc if k not in skeys]
+        if bad:
+            sys.exit("models.json: %s accepts unknown sections %s" % (sec["key"], bad))
+        offers.append([i for i, r in enumerate(model_rows) if r["section"] == si] +
+                      [i for k in acc for i, r in enumerate(model_rows) if r["section"] == skeys.index(k)])
+        if not offers[-1]:
+            sys.exit("models.json: section %s offers no models" % sec["key"])
+    for si in range(len(sections)):
+        for i in offers[si]:
+            knobs[si] = max(knobs[si], knobs[model_rows[i]["section"]])
+    by_section = [[model_rows[i]["name"] for i in offers[si]] for si in range(len(sections))]
+    catalog["offers"] = {sections[si]["key"]: [model_rows[i]["id"] for i in offers[si]] for si in range(len(sections))}
+    irs = ir_files(up)
+    catalog["irs"] = [i for i, _, _ in irs]
+
+    # the impulse responses guitarix ships, in the .so (the IR loader's choices): each file's bytes as they are
+    with gen_file(os.path.join(out, "ir_data.cpp")) as f:
+        f.write("// generated by tools/gen_models.py: guitarix's impulse response files (trunk/IR), unchanged\n"
+                "#include \"models.h\"\n\n")
+        for n, (_, _, path) in enumerate(irs):
+            b = open(path, "rb").read()
+            f.write("static const unsigned char ir_%d[%d] = {\n" % (n, len(b)))
+            for o in range(0, len(b), 32):
+                f.write(",".join(str(x) for x in b[o:o + 32]) + ",\n")
+            f.write("};\n")
+        f.write("const ir_file_t IR_FILES[] = {\n%s};\nconst int NIR_FILES = %d;\n" % (
+            "".join("    {%s, %s, ir_%d, %d},\n" % (c(i), c(l), n, os.path.getsize(p)) for n, (i, l, p) in enumerate(irs)),
+            len(irs)))
+    sources.append(os.path.join(out, "ir_data.cpp"))
 
     # models.cpp
     with gen_file(os.path.join(out, "models.cpp")) as f:
@@ -512,9 +640,9 @@ def main():
         slot0 = 0
         for si, s in enumerate(sections):
             ns = len(s.get("slots", [[s["key"], s["name"]]]))
-            f.write("    {%s, %s, %d, %d, %d, %d, %d, %s},\n" % (c(s["key"]), c(s["name"]), int(s.get("stereo", False)),
-                                                               max(knobs[si], 1), slot0, ns, int(s.get("paged", 0)),
-                                                               c(s.get("item", s["name"]))))
+            f.write("    {%s, %s, %d, %d, %d, %d, %d, %s, %d},\n" % (c(s["key"]), c(s["name"]), int(s.get("stereo", False)),
+                                                                   max(knobs[si], 1), slot0, ns, int(s.get("paged", 0)),
+                                                                   c(s.get("item", s["name"])), int(s.get("start", ns))))
             slot0 += ns
         f.write("};\nconst int NSECTIONS = %d;\n" % len(sections))
         f.write("const char *const SLOT_KEYS[] = { %s };\n" % ", ".join(c(k) for k, _, _ in slots))
@@ -534,7 +662,42 @@ def main():
         f.write("const char *const TAB_KEYS[] = { %s };\nconst int NTABS = %d;\n" % (
             ", ".join(c(t["name"].lower()) for t in cfg["tabs"]), len(cfg["tabs"])))
         f.write("const int BROWSE_ROWS = %d;\n" % (BROWSE_COLS * BROWSE_ROWS))
+        at = [0]
+        for o in offers:
+            at.append(at[-1] + len(o))
+        f.write("const int SECTION_MODELS[] = { %s };\n" % ", ".join(str(i) for o in offers for i in o))
+        f.write("const int SECTION_MODELS_AT[] = { %s };\n" % ", ".join(str(x) for x in at))
     sources.append(os.path.join(out, "models.cpp"))
+
+    # the factory presets: the default rig, then guitarix's factory banks converted (tools/gx_bank.py)
+    with gen_file(os.path.join(out, "catalog.json")) as f:
+        json.dump(catalog, f, indent=1)
+    gcat = gx_bank.Catalog(catalog)
+    dfl = gx_bank.fixed_defaults(cfg, catalog)
+    first = ["v=1", "input=0", "output=0"]
+    for s in sections:
+        if s.get("paged"):
+            first.append("%s_count=%d" % (s["key"], int(s.get("start", len(s["slots"])))))
+    for k, v in dfl.items():
+        first += ["%s_model=%s" % (k, v["model"]), "%s_on=%d" % (k, v["on"])]
+    presets = [("Stompbox", "\n".join(first) + "\n")]
+    fs = os.path.join(up, "guitarix", "trunk", "factorysettings")
+    banks = sorted((f for f in os.listdir(fs) if f.endswith(".gx")), key=lambda f: (f != "brummer.gx", f.lower()))
+    report = []
+    for b in banks:
+        for name, e in gx_bank.read_bank(os.path.join(fs, b)):
+            state, notes = gx_bank.convert(name, e, gcat, dfl)
+            presets.append((gx_bank.preset_name(name), state))
+            report += ["%s/%s: %s" % (b, name, n) for n in notes]
+    with gen_file(os.path.join(out, "presets.cpp")) as f:
+        f.write("// generated by tools/gen_models.py: the default rig and guitarix's factory banks (tools/gx_bank.py)\n"
+                "#include \"models.h\"\n\nconst rack_preset_t RACK_PRESETS[] = {\n")
+        for n, st in presets:
+            f.write("    {%s, %s},\n" % (c(n), c(st)))
+        f.write("};\nconst int NRACK_PRESETS = %d;\n" % len(presets))
+    sources.append(os.path.join(out, "presets.cpp"))
+    with gen_file(os.path.join(out, "presets.txt")) as f:   # what didn't convert, for a look
+        f.write("".join(r + "\n" for r in report))
 
     # params.json: global controls, then per slot: model, on, knobs
     P = [{"key": "input", "name": "Input", "min": -24, "max": 24, "default": 0, "unit": "dB"},
@@ -581,8 +744,12 @@ def main():
             P.append({"key": fk + "_title", "name": fn + " Title", "type": "readout", "display": "string"})
             for key, name in (("_up", " Earlier"), ("_down", " Later"), ("_remove", " Remove")):
                 P.append({"key": fk + key, "name": fn + name, "type": "trigger", "momentary": True})
+    # MPC's PRESET menu (vst.json "programs"): the engine names each ("preset:<n>")
+    P.append({"key": "preset", "name": "Preset", "min": 0, "max": len(presets) - 1, "default": 0, "display": "int",
+              "refresh_display": True})
     with gen_file(os.path.join(out, "params.json")) as f:
         json.dump({"name": cfg.get("name", "Stompbox"), "params": P, "sections": secs}, f, indent=1)
+    lock_params(P, out)
 
     # vst.json for the port builder
     base = json.load(open(os.path.join(REPO, "vst", "vst.json")))
@@ -601,8 +768,10 @@ def main():
     b["sources"] = b.get("sources", []) + support + [rel(s) for s in sources]
     b["cflags"] = ["-I" + os.path.relpath(os.path.join(out, "build"), REPO)] + b.get("cflags", []) + ["-I.", "-I" + g + "/headers", "-I" + g + "/gx_head/engine/tabels", "-I" + g + "/gx_head/engine",
                                          "-I" + g + "/plugins", "-I" + g + "/faust-generated",
-                                         "-I" + g + "/zita-resampler-1.1.0"]
+                                         "-I" + g + "/zita-resampler-1.1.0",
+                                         "-I" + os.path.relpath(os.path.join(up, "eigen"), REPO)]
     base["params"] = "params.json"
+    base["programs"] = {"param": "preset"}
     write_layout(os.path.join(out, "layout.conf"), cfg["tabs"], slots, knobs, sections, os.path.join(REPO, "vst", "theme.conf"))
     base["layout"] = "layout.conf"
     base["art"] = "html"
@@ -618,6 +787,7 @@ def main():
             os.remove(os.path.join(out, f))
     print("%d models in %d sections (%d slots), %d sources, knobs per section: %s" % (
         len(model_rows), len(sections), len(slots), len(sources), ", ".join("%s %d" % (s["key"], knobs[i]) for i, s in enumerate(sections))))
+    print("%d presets, %d notes on what didn't convert (build/gen/presets.txt)" % (len(presets), len(report)))
 
 
 if __name__ == "__main__":

@@ -31,7 +31,8 @@
      "pedal3",
      "Pedal 3"
     ]
-   ]
+   ],
+   "accepts": "all"
   },
   {
    "key": "amp",
@@ -50,24 +51,70 @@
    "name": "Cabinet"
   },
   {
+   "key": "post",
+   "name": "Post FX",
+   "item": "Post FX",
+   "paged": 64,
+   "start": 0,
+   "accepts": "all",
+   "slots": [
+    [
+     "post1",
+     "Post FX 1"
+    ],
+    [
+     "post2",
+     "Post FX 2"
+    ],
+    [
+     "post3",
+     "Post FX 3"
+    ]
+   ]
+  },
+  {
    "key": "mod",
    "name": "Mod",
-   "stereo": true
+   "stereo": true,
+   "accepts": [
+    "mod",
+    "delay",
+    "reverb",
+    "eq"
+   ]
   },
   {
    "key": "delay",
    "name": "Delay",
-   "stereo": true
+   "stereo": true,
+   "accepts": [
+    "mod",
+    "delay",
+    "reverb",
+    "eq"
+   ]
   },
   {
    "key": "reverb",
    "name": "Reverb",
-   "stereo": true
+   "stereo": true,
+   "accepts": [
+    "mod",
+    "delay",
+    "reverb",
+    "eq"
+   ]
   },
   {
    "key": "eq",
    "name": "EQ",
-   "stereo": true
+   "stereo": true,
+   "accepts": [
+    "mod",
+    "delay",
+    "reverb",
+    "eq"
+   ]
   }
  ],
  "defaults": {
@@ -116,6 +163,10 @@
   },
   "power": {
    "model": "Push-Pull EL34"
+  },
+  "post1": {
+   "model": "Graphic EQ",
+   "on": 1
   }
  },
  "tabs": [
@@ -162,6 +213,21 @@
     ],
     [
      "cab"
+    ]
+   ]
+  },
+  {
+   "name": "POST",
+   "color": "ffe14d",
+   "rows": [
+    [
+     "post1"
+    ],
+    [
+     "post2"
+    ],
+    [
+     "post3"
     ]
    ]
   },
@@ -241,6 +307,36 @@
     "TRESHOLD": "Threshold",
     "UPTIME": "Rise",
     "DOWNTIME": "Fall"
+   }
+  },
+  {
+   "id": "mbcomp",
+   "name": "Multiband Comp",
+   "section": "comp",
+   "gx": "plugins/generated/mbc.cc",
+   "show": [
+    "mbc.Makeup1",
+    "mbc.Makeup2",
+    "mbc.Makeup3",
+    "mbc.Makeup4",
+    "mbc.Makeup5",
+    "mbc.Ratio1",
+    "mbc.Ratio2",
+    "mbc.Ratio3",
+    "mbc.Ratio4",
+    "mbc.Ratio5"
+   ],
+   "names": {
+    "mbc.Makeup1": "Gain 1",
+    "mbc.Makeup2": "Gain 2",
+    "mbc.Makeup3": "Gain 3",
+    "mbc.Makeup4": "Gain 4",
+    "mbc.Makeup5": "Gain 5",
+    "mbc.Ratio1": "Ratio 1",
+    "mbc.Ratio2": "Ratio 2",
+    "mbc.Ratio3": "Ratio 3",
+    "mbc.Ratio4": "Ratio 4",
+    "mbc.Ratio5": "Ratio 5"
    }
   },
   {
@@ -896,6 +992,30 @@
    }
   },
   {
+   "id": "gain",
+   "name": "Gain Stage",
+   "section": "pedal",
+   "gx": "faust-generated/gain.cc"
+  },
+  {
+   "id": "softclip",
+   "name": "Soft Clip",
+   "section": "pedal",
+   "gx": "faust-generated/softclip.cc",
+   "names": {
+    "amp.fuzz": "Drive"
+   }
+  },
+  {
+   "id": "shaper",
+   "name": "Noise Shaper",
+   "section": "pedal",
+   "gx": "faust-generated/noise_shaper.cc",
+   "names": {
+    "shaper.sharper": "Sharper"
+   }
+  },
+  {
    "id": "gxamp",
    "name": "12AX7",
    "section": "amp",
@@ -1320,6 +1440,14 @@
    "lv2": "GxVBassPreAmp.lv2"
   },
   {
+   "id": "stackpre",
+   "name": "Stack Preamp",
+   "section": "amp",
+   "gx": "plugins/jcm800pre.cpp",
+   "factory": "pluginlib::jcm800pre::plugin",
+   "alone": true
+  },
+  {
    "id": "ts_neutral",
    "name": "Neutral",
    "section": "tone",
@@ -1701,6 +1829,76 @@
    ]
   },
   {
+   "id": "pre_chime",
+   "name": "Preamp IR Chime",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_ac30"
+  },
+  {
+   "id": "pre_tweedbass",
+   "name": "Preamp IR Tweed Bass",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_bassman"
+  },
+  {
+   "id": "pre_tube",
+   "name": "Preamp IR Tube",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_tube"
+  },
+  {
+   "id": "pre_clean",
+   "name": "Preamp IR Clean",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_fender"
+  },
+  {
+   "id": "pre_lead",
+   "name": "Preamp IR Lead",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_jcm800"
+  },
+  {
+   "id": "pre_vintagelead",
+   "name": "Preamp IR Vintage Lead",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_jtm45"
+  },
+  {
+   "id": "pre_modern",
+   "name": "Preamp IR Modern",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_mesaboogie"
+  },
+  {
+   "id": "pre_boutique",
+   "name": "Preamp IR Boutique",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_boutique"
+  },
+  {
+   "id": "pre_bass",
+   "name": "Preamp IR Bass",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_ampeg"
+  },
+  {
+   "id": "pre_highgain",
+   "name": "Preamp IR High Gain",
+   "section": "power",
+   "builtin": "pre",
+   "ir": "pre_data_rectifier"
+  },
+  {
    "id": "cab_4x12",
    "name": "4x12",
    "section": "cab",
@@ -1846,6 +2044,12 @@
    }
   },
   {
+   "id": "irloader",
+   "name": "IR Loader",
+   "section": "cab",
+   "builtin": "ir"
+  },
+  {
    "id": "chorus",
    "name": "Chorus",
    "section": "mod",
@@ -1910,7 +2114,21 @@
    "factory": "plugin_stereo",
    "defines": [
     "GUITARIX_AS_PLUGIN"
-   ]
+   ],
+   "unit": "univibe",
+   "zeroed": "pluginlib::vibe::Vibe(true)"
+  },
+  {
+   "id": "vibe_mono",
+   "name": "Vibe Mono",
+   "section": "mod",
+   "gx": "plugins/vibe.cc",
+   "factory": "plugin_mono",
+   "defines": [
+    "GUITARIX_AS_PLUGIN"
+   ],
+   "unit": "univibe_mono",
+   "zeroed": "pluginlib::vibe::Vibe(false)"
   },
   {
    "id": "ringmod",
@@ -1929,6 +2147,17 @@
    "name": "Stereo Widener",
    "section": "mod",
    "gx": "faust-generated/panoram_enhancer.cc"
+  },
+  {
+   "id": "ampmod",
+   "name": "Amp Modulator",
+   "section": "mod",
+   "gx": "faust-generated/gx_ampmodul.cc",
+   "names": {
+    "ampmodul.feedbac": "Feedback 2",
+    "ampmodul.amp2.stage1.tube1": "Tube 1",
+    "ampmodul.amp2.stage2.tube2": "Tube 2"
+   }
   },
   {
    "id": "delay",
@@ -1977,6 +2206,12 @@
    "name": "Reverse Delay",
    "section": "delay",
    "gx": "plugins/reversedelay.cc"
+  },
+  {
+   "id": "digidelay_mono",
+   "name": "Digital Delay Mono",
+   "section": "delay",
+   "gx": "faust-generated/digital_delay.cc"
   },
   {
    "id": "freeverb",
@@ -2077,6 +2312,49 @@
    "name": "Resonance",
    "section": "eq",
    "gx": "faust-generated/impulseresponse.cc"
+  },
+  {
+   "id": "sweepeq",
+   "name": "10-Band Sweep EQ",
+   "section": "eq",
+   "gx": "faust-generated/selecteq.cc",
+   "show": [
+    "eqs.fs31_25",
+    "eqs.fs62_5",
+    "eqs.fs125",
+    "eqs.fs250",
+    "eqs.fs500",
+    "eqs.fs1k",
+    "eqs.fs2k",
+    "eqs.fs4k",
+    "eqs.fs8k",
+    "eqs.fs16k"
+   ],
+   "names": {
+    "eqs.fs31_25": "31",
+    "eqs.fs62_5": "62",
+    "eqs.fs125": "125",
+    "eqs.fs250": "250",
+    "eqs.fs500": "500",
+    "eqs.fs1k": "1k",
+    "eqs.fs2k": "2k",
+    "eqs.fs4k": "4k",
+    "eqs.fs8k": "8k",
+    "eqs.fs16k": "16k"
+   }
+  },
+  {
+   "id": "presence",
+   "name": "Presence",
+   "section": "eq",
+   "builtin": "presence",
+   "unit": "con"
+  },
+  {
+   "id": "fizz",
+   "name": "Fizz Remover",
+   "section": "eq",
+   "gx": "faust-generated/fizz_remover.cc"
   }
  ]
 }

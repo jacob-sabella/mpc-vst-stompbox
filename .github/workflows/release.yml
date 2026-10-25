@@ -31,6 +31,6 @@ jobs:
       # from the generated folder
       build: "vst/build.sh && { [ ! -f vst/bench.txt ] || cp vst/bench.txt build/gen/; }"
       host_test: tests/run.sh
-      about: "A guitar rig as one insert effect: gate, compressor, wah, three pedals, amp, tone stack, power amp, cabinet, modulation, delay, reverb and EQ, from the guitarix project's DSP."
+      about: "A guitar rig as one insert effect: gate, compressor, wah, any number of pedals, amp, tone stack, power amp, cabinet, post FX, modulation, delay, reverb and EQ, from the guitarix project's DSP, with guitarix's 40 factory presets."
       license: GPL-3.0-or-later
       dry_run: ${{ inputs.dry_run }}
