@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clones the guitarix and GxPlugins commits named in upstream.env into a folder (default build/upstream) and refuses
+# Clones the guitarix, GxPlugins and Eigen commits named in upstream.env into a folder (default build/upstream) and refuses
 # a checkout whose HEAD is not that commit. GxPlugins' pedals are submodules, checked out at the commits its pinned
 # superproject records. Nothing fetched is committed. Run again: an up-to-date checkout is left as it is.
 # Usage: tools/fetch-upstream.sh [<folder>]
@@ -9,12 +9,13 @@ cd "$(dirname "$0")/.."
 out=${1:-build/upstream}
 mkdir -p "$out"
 
-fetch() {   # repo, commit, dir, [submodules]
-    local repo=$1 commit=$2 dir=$out/$3
+fetch() {   # repo (owner/name on GitHub, or a URL), commit, dir, [submodules]
+    local repo=$1 commit=$2 dir=$out/$3 url=$1
+    case $url in https://*) ;; *) url=https://github.com/$url ;; esac
     if [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null || true)" != "$commit" ]; then
         rm -rf "$dir"
         git init -q "$dir"
-        git -C "$dir" fetch -q --depth 1 "https://github.com/$repo" "$commit"
+        git -C "$dir" fetch -q --depth 1 "$url" "$commit"
         git -C "$dir" -c advice.detachedHead=false checkout -q FETCH_HEAD
     fi
     [ "$(git -C "$dir" rev-parse HEAD)" = "$commit" ] || { echo "$dir: HEAD is not $commit" >&2; exit 1; }
@@ -26,3 +27,4 @@ fetch() {   # repo, commit, dir, [submodules]
 }
 fetch "$GUITARIX_REPO" "$GUITARIX_COMMIT" guitarix
 fetch "$GXPLUGINS_REPO" "$GXPLUGINS_COMMIT" gxplugins submodules
+fetch "$EIGEN_URL" "$EIGEN_COMMIT" eigen
