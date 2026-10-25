@@ -71,8 +71,8 @@ def panel(uid, w, h, colour, title, field=None, header=48):
          '<linearGradient id="%s_hd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#%s" stop-opacity="0.42"/>'
          '<stop offset="0.55" stop-color="#%s" stop-opacity="0.10"/><stop offset="1" stop-color="#%s" stop-opacity="0.02"/>'
          '</linearGradient>' % (uid, colour, colour, colour),
-         '<linearGradient id="%s_bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0624" stop-opacity="0.90"/>'
-         '<stop offset="1" stop-color="#07031a" stop-opacity="0.94"/></linearGradient>' % uid,
+         '<linearGradient id="%s_bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0624" stop-opacity="1"/>'
+         '<stop offset="1" stop-color="#07031a" stop-opacity="1"/></linearGradient>' % uid,
          '<radialGradient id="%s_sc" cx="0.35" cy="0.3"><stop offset="0" stop-color="#ffffff"/>'
          '<stop offset="1" stop-color="#6d6a80"/></radialGradient>' % uid,
          '<filter id="%s_gl" x="-10%%" y="-40%%" width="120%%" height="180%%"><feGaussianBlur stdDeviation="2.4" result="b"/>'
