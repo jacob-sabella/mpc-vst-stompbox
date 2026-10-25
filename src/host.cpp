@@ -1,5 +1,6 @@
 #include "host.h"
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <mutex>
 #include "gx_plugin.h"
@@ -18,7 +19,10 @@ struct Reg {
         return tp && (strchr(tp, 'o') || strchr(tp, 'O') || strchr(tp, 'M'));
     }
     static void labels(mod_param &p, const value_pair *v) {
-        for (; v && v->value_id; v++) p.labels.push_back(v->value_label ? v->value_label : v->value_id);
+        for (; v && v->value_id; v++) {
+            p.labels.push_back(v->value_label ? v->value_label : v->value_id);
+            p.keys.push_back(v->value_id);
+        }
     }
     static float *f(const char *id, const char *name, const char *tp, const char *, float *var, float val, float lo,
                     float up, float step, const value_pair *values) {
@@ -63,12 +67,17 @@ struct Reg {
 std::mutex Reg::lock;
 Module *Reg::cur = nullptr;
 
-/* keep the params named in show (in that order), relabel from names */
-static void curate(std::vector<mod_param> &ps, const model_t *m) {
+/* put the params named in show first (in that order) and the others after them, relabel from names; -> how many are
+ * shown */
+static int curate(std::vector<mod_param> &ps, const model_t *m) {
+    int shown = (int)ps.size();
     if (m->show) {
         std::vector<mod_param> out;
+        std::vector<bool> used(ps.size());
         for (const char *const *s = m->show; *s; s++)
-            for (auto &p : ps) if (p.id == *s) { out.push_back(p); break; }
+            for (size_t k = 0; k < ps.size(); k++) if (!used[k] && ps[k].id == *s) { out.push_back(ps[k]); used[k] = true; break; }
+        shown = (int)out.size();
+        for (size_t k = 0; k < ps.size(); k++) if (!used[k]) out.push_back(ps[k]);
         ps.swap(out);
     }
     for (const name_t *n = m->names; n && n->id; n++)
@@ -77,6 +86,7 @@ static void curate(std::vector<mod_param> &ps, const model_t *m) {
         size_t dot = p.id.rfind('.');
         p.name = dot == std::string::npos ? p.id : p.id.substr(dot + 1);
     }
+    return shown;
 }
 
 Module *Module::create(const model_t *m, int rate) {
@@ -97,7 +107,7 @@ Module *Module::create(const model_t *m, int rate) {
             pd->register_params(reg);
             Reg::cur = nullptr;
         }
-        curate(x->params_, m);
+        x->nshown_ = curate(x->params_, m);
         if (pd->set_samplerate) pd->set_samplerate(rate, pd);
         if (pd->activate_plugin) pd->activate_plugin(true, pd);
         if (pd->clear_state) pd->clear_state(pd);
@@ -125,12 +135,14 @@ Module *Module::create(const model_t *m, int rate) {
             else if (pt.integer) { p.type = mod_param::ENUM; for (int v = (int)pt.lo; v <= (int)pt.hi; v++) p.labels.push_back(std::to_string(v)); }
             x->params_.push_back(p);
         }
+        x->nshown_ = (int)x->params_.size();
         if (x->d_->activate) x->d_->activate(x->h_);
     } else {
         x->bi_ = make_builtin(m, rate);
         if (!x->bi_) { delete x; return nullptr; }
         x->params_ = x->bi_->params;
         for (auto &p : x->params_) p.f = nullptr;
+        x->nshown_ = x->bi_->shown < 0 ? (int)x->params_.size() : x->bi_->shown;
     }
     return x;
 }
@@ -150,6 +162,17 @@ Module::~Module() {
 int Module::find(const char *id) const {
     for (int k = 0; k < nparams(); k++) if (params_[k].id == id) return k;
     return -1;
+}
+
+bool Module::parse(int k, const char *txt, float *v) const {
+    if (k < 0 || k >= nparams() || !txt) return false;
+    char *e;
+    float f = strtof(txt, &e);
+    if (e != txt && !*e) { *v = f; return true; }
+    const mod_param &p = params_[k];
+    for (size_t i = 0; i < p.keys.size(); i++) if (p.keys[i] == txt) { *v = p.lo + (float)i; return true; }
+    for (size_t i = 0; i < p.labels.size(); i++) if (p.labels[i] == txt) { *v = p.lo + (float)i; return true; }
+    return false;
 }
 
 void Module::set(int k, float v) {
