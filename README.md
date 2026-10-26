@@ -1,5 +1,11 @@
 # Stompbox
 
+> [!WARNING]
+> **This is not a guitarix project.** I'm not affiliated with the guitarix developers, and they have nothing to do
+> with this port. Stompbox was built with AI ([Claude Code](https://claude.ai/code)). If something goes wrong while
+> you're using it, please **don't report it to guitarix**. Open an issue
+> [here](https://github.com/jacob-sabella/mpc-vst-stompbox/issues) instead.
+
 A full guitar rig for the Akai MPC, in one insert effect.
 
 Plug a guitar into your MPC, put Stompbox on the track, and you get a pedalboard, an amp, a cabinet and a rack of
@@ -176,6 +182,11 @@ tools/bench_rig.sh <ip>    # CPU on a device for each rig in tests/rigs/ (instal
 
 The tests try every model in every slot, sweep random parameters, use the model browser, add, move and remove pedals,
 save and restore state, and load every factory preset.
+
+## Vibe Coded
+
+This project was built with [Claude Code](https://claude.ai/code): the rack, the module host, the preset converter,
+the skin and the build tooling. The DSP inside it is guitarix's and GxPlugins', unchanged.
 
 ## Credits and license
 
