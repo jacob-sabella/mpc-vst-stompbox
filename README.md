@@ -25,7 +25,7 @@ The four stereo slots each take any mod, delay, reverb or EQ model, so their ord
 
 Every slot has a model picker, an on switch and up to 12 knobs that take the picked model's own controls: their names,
 ranges and value text follow the model. Each model keeps its settings while you try others, and the project saves them
-all. Switching a slot or its model crossfades over 5 ms. The skin has five pages (INPUT, PEDALS, AMP, FX, EQ) with
+all. Switching a slot or its model crossfades over 5 ms. The skin has six pages (INPUT, PEDALS, AMP, POST, FX, EQ) with
 16 Q-Links each, the first knob of every slot on the first Q-Links.
 
 ![The PEDALS page on an MPC Key 37](docs/screenshots/pedals.png)
