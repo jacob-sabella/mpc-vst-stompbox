@@ -1,122 +1,186 @@
-# mpc-vst-stompbox
+# Stompbox
 
-A whole guitar rig as one insert effect for Akai MPC OS standalone devices (MPC Live/One/X/Key, Force; Gen1 and Gen2),
-with a native MPC screen skin. Its DSP is the [guitarix](https://github.com/brummer10/guitarix) project's: guitarix's
-own modules and the [GxPlugins.lv2](https://github.com/brummer10/GxPlugins.lv2) pedals, 219 models in all, and
-guitarix's 40 factory presets in MPC's PRESET menu.
+A full guitar rig for the Akai MPC, in one insert effect.
 
-```
-input -> gate -> comp -> wah -> pedal 1 -> ... -> pedal N -> amp -> tone stack -> power amp -> cabinet
-      -> post FX 1 -> ... -> post FX N                                                              (mono)
-      -> mod -> delay -> reverb -> EQ -> output                                                     (stereo)
-```
+Plug a guitar into your MPC, put Stompbox on the track, and you get a pedalboard, an amp, a cabinet and a rack of
+effects, all on the MPC's own touchscreen with Q-Links. It runs on MPC OS standalone devices (MPC Live, One, X, Key and
+Force), Gen1 and Gen2.
 
-| Slot | Models | | Slot | Models |
-|---|---|---|---|---|
-| Gate | 2 | | Cabinet | 19 (cabinets, and an IR loader with guitarix's 91 impulse responses) |
-| Comp | 5 (compressor, multiband, expander, sustainer, swell) | | Post FX (any number, up to 64) | any of the 219 |
-| Wah | 15 (wahs, auto wah, envelope filter) | | Mod | 14 (chorus, flanger, phaser, vibe in stereo and mono, tremolo, widener...) |
-| Pedals (any number, up to 64) | any of the 219; 71 are pedals (boosts, overdrives, distortions, fuzzes) | | Delay | 8 |
-| Amp | 27 (tube preamps, stacks, combos, bass) | | Reverb | 4 |
-| Tone stack | 27 | | EQ | 11 |
-| Power amp | 16 (power amps, preamp impulse responses) | | | |
-
-The four stereo slots each take any mod, delay, reverb or EQ model, so their order is yours too.
-
-Every slot has a model picker, an on switch and up to 12 knobs that take the picked model's own controls: their names,
-ranges and value text follow the model. Each model keeps its settings while you try others, and the project saves them
-all. Switching a slot or its model crossfades over 5 ms. The skin has six pages (INPUT, PEDALS, AMP, POST, FX, EQ) with
-16 Q-Links each, the first knob of every slot on the first Q-Links.
+The sound comes from [guitarix](https://github.com/brummer10/guitarix), the open-source Linux amp simulator, and from
+its sister project [GxPlugins.lv2](https://github.com/brummer10/GxPlugins.lv2). Stompbox brings 219 of their models to
+the MPC, along with guitarix's 40 factory presets.
 
 ![The PEDALS page on an MPC Key 37](docs/screenshots/pedals.png)
 
-A tap on a slot's model name opens its model browser over the page: 44 names a page (four columns of 11), the current
-model lit, `<` and `>` for more pages when a slot has more models than that, so a slot can offer any number of models.
-A tap on a name picks it and closes the browser; CLOSE leaves the model as it was.
+## The rig
+
+Your signal runs left to right through these slots:
+
+```
+input → gate → comp → wah → pedals → amp → tone stack → power amp → cabinet → post FX → mod → delay → reverb → EQ
+```
+
+Everything up to the post FX is mono. The last four slots are stereo.
+
+| Slot | What you can pick |
+|---|---|
+| Gate | 2 noise gates |
+| Comp | 5: compressor, multiband, expander, sustainer, swell |
+| Wah | 15: wahs, an auto wah, an envelope filter |
+| Pedals | as many as you like (up to 64), each one any of the 219 models. 71 of them are pedals: boosts, overdrives, distortions and fuzzes |
+| Amp | 27: tube preamps, stacks, combos and bass amps |
+| Tone stack | 27 |
+| Power amp | 16 power amps and preamp impulse responses |
+| Cabinet | 19 cabinets, plus an IR loader with guitarix's 91 impulse responses |
+| Post FX | as many as you like (up to 64), each one any of the 219 models |
+| Mod | 14: chorus, flanger, phaser, vibe (stereo and mono), tremolo, widener and more |
+| Delay | 8 |
+| Reverb | 4 |
+| EQ | 11 |
+
+The four stereo slots aren't fixed to their names. Each one takes any mod, delay, reverb or EQ model, so you can put
+the reverb before the delay, or run two delays.
+
+## Using it
+
+Put Stompbox on a track's insert (channel mixer > EFFECTS). The skin has six pages, each with 16 Q-Links:
+
+| Page | Slots |
+|---|---|
+| INPUT | gate, comp, wah |
+| PEDALS | your pedals, three to a page |
+| AMP | amp, tone stack, power amp, cabinet |
+| POST | your post FX, three to a page |
+| FX | mod, delay, reverb |
+| EQ | EQ |
+
+Every slot works the same way. It has a footswitch to turn it on and off, a model picker, and up to 12 knobs. The knobs
+change with the model: a fuzz shows Fuzz and Level, a delay shows Feedback, BPM, Notes and so on. The first knob of
+each slot sits on the first Q-Links of its page.
+
+![The AMP page](docs/screenshots/amp.png)
+
+Tap a model name to open the browser. It shows 44 models a page, with the current one lit and arrows to page through
+the rest. Tap a name to pick it, or CLOSE to leave things as they were. Each model remembers its settings while you try
+others, and the project saves all of them. Switching models or footswitches fades over 5 ms, so there's no click.
 
 ![The model browser open on a pedal](docs/screenshots/model-browser.png)
 
-The PEDALS page holds any number of pedals, three to a page. Its bar shows which ones are on screen ("Pedals 4-6 of 7"),
-with `<` and `>` when there is more than one page, and ADD PEDAL appends one (switched on) at the end of the chain and
-turns to it. Each pedal's header has earlier and later arrows that move it along the chain, and an X that removes it
-(it fades out first). A new rig starts with three pedals, and the project saves however many it has. Moving a pedal
-that is on can click, since the signal's path changes at once. Each pedal costs CPU only while it is on.
+### Pedals
 
-![A fourth pedal added: its own page, with empty frames to add more](docs/screenshots/pedal-added.png)
+A new rig starts with three pedals, all switched off. ADD PEDAL puts a new one at the end of the chain and turns to
+its page. The arrows in a pedal's header move it earlier or later in the chain, and the X removes it. Moving a pedal
+that's switched on can click, because the signal path changes at once.
 
-The POST page works the same way for effects after the cabinet: a fuzz after the amp, a second EQ, an impulse response
-for a different cabinet, an effect from any section. It starts empty.
+A pedal only uses CPU while it's on, so it costs nothing to keep a few spare ones around.
+
+![One pedal, with room to add more](docs/screenshots/pedal-added.png)
+
+### Post FX
+
+The POST page works just like PEDALS, for effects after the cabinet: a fuzz after the amp, a second EQ, another
+impulse response, anything from any section. It starts empty.
+
+![The POST page](docs/screenshots/post.png)
 
 ## Presets
 
-MPC's PRESET menu (the plugin header) lists the default rig and guitarix's 40 factory presets (its own, and the
-HarryVH, Musiclab and Sonnie Tele banks). The build converts them from guitarix's files (`tools/gx_bank.py`), so
-none are stored here. guitarix runs a chain in any order, so a preset becomes Stompbox slots like this: the units
-before guitarix's amp go to the pedals, those after it to the tone stack, power amp and cabinet while they come in
-that order and to post FX after that, and the stereo rack's to the stereo slots (or to post FX while it is still mono).
-Picking a preset replaces the whole rig; save the project to keep your edits. The preset is built in the background
-while the old rig plays on, so the sound changes a moment after the pick without a dropout (the heaviest preset takes
-0.8 s to build on a Key 37).
+Open the PRESET menu at the top of the plugin. The first entry, Stompbox, is the plain starting rig: a gate, the Lead
+Stack amp, a tone stack and a 4x12 cabinet. After it come guitarix's 40 factory presets. Those are guitarix's own, plus
+the banks from HarryVH, Musiclab and Sonnie Tele:
 
-`tools/gx_bank.py <bank.gx>` prints the states a bank converts to, and what it couldn't place. Your own banks are in
-`~/.config/guitarix/banks/` on a PC that runs guitarix.
+- **Effect demos:** Default, Flanger, Echo, Convolv, Reverb, Phaser, Chorus, Tremolo, Vibe, Solo Lead, Distort Lead
+  and a few more
+- **Song tones:** acoustic, bass, clean, crunch, distortion, FX and lead sounds, from Angie and Iron Man to Still Got
+  The Blues
+- **Everyday rigs:** finger bass, clean delay chorus, crunch picking and others
 
-Put it on a track's insert (channel mixer > EFFECTS). MPC doesn't run a drum pad's insert while that pad is silent, and
-the screen only follows the browser, ADD PEDAL and the pedal arrows while the plugin runs, so on a silent pad the page
-stays as it was (seen on a Key 37, 2026-10-25).
+![The PRESET menu](docs/screenshots/presets.png)
 
-Model names are generic ("Overdrive 1", "Lead Stack", "4x12 Closed"), and so are the IR loader's ("Amp 1".."Amp 20",
-"Band 1".."Band 70", "Hall").
+Picking a preset replaces the whole rig, so save your project first if you want to keep your edits. The old rig keeps
+playing while the new one loads, then the sound changes over with no dropout. That takes under a second even for the
+heaviest preset.
 
-## How this repo is built
+Preset names stop at 24 characters (the VST2 limit), so a few of the longer song names are cut short in the menu.
 
-This repo holds **none of guitarix's or GxPlugins' code**. `upstream.env` pins one commit of each, and the build
-fetches them (`tools/fetch-upstream.sh`; git checks each by its hash). What's here is the skeleton that makes them an
-MPC plugin:
+The presets aren't stored in this repo. The build converts them from guitarix's own files with `tools/gx_bank.py`.
+guitarix lets you chain its units in any order, so the converter places each one in the matching Stompbox slot.
+Anything that doesn't fit there goes to post FX.
 
-- `models.json`: what the rack offers: slots, and each model's upstream module, its controls and its display name
-- `tools/gen_models.py`: models.json and the fetched trees -> `build/gen/`: one translation unit per upstream module
-  (compiled unchanged), the model table, the VST parameter list, the skin layout, the port builder's vst.json, the
-  factory presets and guitarix's impulse response files (in the .so)
-- `tools/gx_bank.py`: guitarix presets -> Stompbox states
-- `src/rack.cpp` (the rack, an [mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins) engine), `src/host.cpp`
-  (hosts a guitarix module or a GxPlugins LV2 plugin), `src/builtins.cpp` (the noise gate, the cabinet, preamp and
-  presence convolvers with guitarix's impulse responses and tone shapers, and the IR loader's partitioned FFT
-  convolver)
+If you use guitarix on a computer, your own banks live in `~/.config/guitarix/banks/`. Run
+`tools/gx_bank.py <bank.gx>` to see what each preset in a bank would become in Stompbox. Loading your own banks on the
+MPC isn't possible yet.
 
-[Eigen](https://eigen.tuxfamily.org) (pinned in `upstream.env` too) is fetched for one guitarix preamp that needs it.
+## Good to know
 
-A weekly workflow (`.github/workflows/upstream.yml`) opens a pull request when either upstream has new commits, after
-running the tests and both builds with them.
+- MPC doesn't run a drum pad's insert while that pad is silent. On a silent pad, the browser, ADD PEDAL and the pedal
+  arrows don't redraw the page until the pad plays. Put Stompbox on a track instead (seen on a Key 37, 2026-10-25).
+- Model names are generic: "Overdrive 1", "Lead Stack", "4x12 Closed". The IR loader's impulse responses are
+  "Amp 1" to "Amp 20", "Band 1" to "Band 70" and "Hall".
 
-## Build and test
+## Installing
 
-Needs Docker (with QEMU for the ARM builds) and an mpc-vst-plugins checkout next to this one (or `MPC_VST=<path>`).
-
-```sh
-tests/run.sh               # offline, x86, ASan/UBSan: every model of every slot, a random parameter sweep, the model browser, adding, moving and removing pedals, state, every factory preset; then the wrapper's host test
-vst/build.sh               # build/gen/build/stompbox.so (armv7) and aarch64/stompbox.so, the skin, the plugin-list entry
-tools/bench_rig.sh <ip>    # CPU on a device, per rig in tests/rigs/ (nothing installed; MPC keeps running)
-```
+There's no release yet. Once there is, it will be in the
+[MPC plugin catalog](https://sd88me.github.io/mpc-vst-plugins/) and on this repo's Releases page. Until then, build it
+yourself (below) and install it like any other plugin from
+[mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins).
 
 ## CPU
 
-On an MPC Key 37 (Gen1, RK3288), percent of one 128-frame block, MPC running (2026-10-24):
+Measured on an MPC Key 37 (Gen1, RK3288) with MPC running. The figures are a percentage of the time MPC allows for one
+128-frame block, so 100% is the limit (2026-10-24):
 
 | Rig | mean | p99 | worst block |
 |---|---|---|---|
-| Default: gate, Lead Stack, tone stack, 4x12 | 11.6 | 12.1 | 21.7 |
+| Starting rig: gate, Lead Stack, tone stack, 4x12 | 11.6 | 12.1 | 21.7 |
 | Full: every slot but pedal 3, everyday models | 30.2 | 31.3 | 41.8 |
 | Heavy: every slot on with its heaviest model | 73.9 | 75.4 | 87.0 |
 | Convolv, the heaviest factory preset (2026-10-25) | 32.5 | 36.3 | 54.9 |
 
-The tube preamp models ("12AX7", "6V6"... and their push-pull and feedback versions) are the heavy ones, about
-14-20% each; the stacks and combos cost 2-7%, the cabinet 3.4%. Picking a model or switching a slot never waits for the
-model to load: a loader thread builds it (and clears a model's delay lines before it fades in again) while the audio
-plays on, so turning knobs and Q-Links costs no more than the rig itself.
+The tube preamp models ("12AX7", "6V6" and their push-pull and feedback versions) are the expensive ones, at about
+14-20% each. The stacks and combos cost 2-7%, and the cabinet 3.4%. Models load on a background thread, so turning knobs,
+switching models and moving Q-Links cost no more than the rig itself.
 
-## License
+## How it's built
 
-GPL-3.0-or-later (`LICENSE`), as guitarix and GxPlugins are GPL. guitarix and GxPlugins.lv2 are by Hermann Meyer
-(brummer10) and the guitarix contributors; this repo only builds them for MPC. The impulse responses guitarix ships
-(the IR loader's) are David Fau Casquel's BestPlugins Mega Pack 2, GPL-2.0-or-later.
+This repo contains **none of guitarix's or GxPlugins' code**. `upstream.env` pins one commit of each, and the build
+fetches them with `tools/fetch-upstream.sh` and checks them by hash. guitarix's modules compile unchanged. What lives
+here is the glue that turns them into an MPC plugin:
+
+- `models.json` lists the slots and, for each model, its upstream module, controls and display name.
+- `tools/gen_models.py` reads models.json and the fetched code and generates everything in `build/gen/`: a source file
+  per module, the model table, the VST parameters, the skin layout, the factory presets and the impulse responses.
+- `tools/gx_bank.py` converts guitarix presets into Stompbox rigs.
+- `src/rack.cpp` is the rack itself, an [mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins) engine.
+  `src/host.cpp` runs a guitarix module or a GxPlugins LV2 plugin. `src/builtins.cpp` has the noise gate, the
+  cabinet, preamp and presence convolvers, and the IR loader's FFT convolver.
+- `vst/params.lock` keeps the VST parameter order fixed, so Q-Link maps and automation in saved projects keep working
+  after an update.
+
+[Eigen](https://eigen.tuxfamily.org) is fetched too (also pinned in `upstream.env`), for one guitarix preamp that
+needs it.
+
+Every week a workflow (`.github/workflows/upstream.yml`) checks guitarix and GxPlugins for new commits. If there are
+any, it runs the tests and both builds against them and opens a pull request.
+
+### Build and test
+
+You need Docker (with QEMU for the ARM builds) and an mpc-vst-plugins checkout next to this one (or set
+`MPC_VST=<path>`).
+
+```sh
+tests/run.sh               # offline tests on x86 under ASan/UBSan, then the wrapper's host test
+vst/build.sh               # build/gen/build/stompbox.so (armv7), aarch64/stompbox.so, the skin and the plugin-list entry
+tools/bench_rig.sh <ip>    # CPU on a device for each rig in tests/rigs/ (installs nothing; MPC keeps running)
+```
+
+The tests try every model in every slot, sweep random parameters, use the model browser, add, move and remove pedals,
+save and restore state, and load every factory preset.
+
+## Credits and license
+
+guitarix and GxPlugins.lv2 are by Hermann Meyer (brummer10) and the guitarix contributors. This repo only builds them
+for the MPC. The impulse responses that guitarix ships, which the IR loader uses, are David Fau Casquel's BestPlugins
+Mega Pack 2 (GPL-2.0-or-later).
+
+Stompbox is GPL-3.0-or-later (`LICENSE`), like guitarix and GxPlugins.
