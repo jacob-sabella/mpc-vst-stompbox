@@ -144,8 +144,13 @@ Measured on an MPC Key 37 (Gen1, RK3288) with MPC running. The figures are a per
 | Convolv, the heaviest factory preset (2026-10-25) | 32.5 | 36.3 | 54.9 |
 
 The tube preamp models ("12AX7", "6V6" and their push-pull and feedback versions) are the expensive ones, at about
-14-20% each. The stacks and combos cost 2-7%, and the cabinet 3.4%. Models load on a background thread, so turning knobs,
-switching models and moving Q-Links cost no more than the rig itself.
+14-20% each. The stacks and combos cost 2-7%, and the cabinet 3.4%. Models load on a background thread, so switching a
+model never stalls the audio.
+
+The standard release bench (mpc-vst-plugins' `tools/bench.sh`, result in `vst/bench.txt`) gives the starting rig a
+**WARN**: 13.5% at p99 while it plays, rising to 21.3% while every Q-Link is swept at once, because a switched model
+runs alongside the old one for its 5 ms fade (worst block 38.2%, 2026-10-25). Plan on one or two Stompbox instances in
+a project, not several.
 
 ## How it's built
 
