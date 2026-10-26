@@ -1,0 +1,8 @@
+plugin /tmp/stompbox.so: effect, 318 params, open 40.9 ms; block 128 @ 44100 Hz = 2902 us budget
+stage               mean%     p99%     max%  threads%    peak
+idle                 12.6     13.5     34.6       0.0    0.11
+audio in             12.6     13.5     14.2      -0.0    0.10
+q-link sweep          5.0     21.3     38.2       5.1    1.00
+release tail          1.4      1.9     18.0       1.5    0.01
+worst p99 21.3%, worst block 38.2%, background threads up to 5.1% of a core -> WARN
+{"plugin":"/tmp/stompbox.so","instrument":0,"open_ms":40.9,"p99_pct":21.3,"max_pct":38.2,"threads_pct":5.1,"verdict":"WARN"}
