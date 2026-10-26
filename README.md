@@ -120,7 +120,8 @@ MPC isn't possible yet.
 ## Good to know
 
 - MPC doesn't run a drum pad's insert while that pad is silent. On a silent pad, the browser, ADD PEDAL and the pedal
-  arrows don't redraw the page until the pad plays. Put Stompbox on a track instead (seen on a Key 37, 2026-10-25).
+  arrows don't redraw the page until the pad plays, and a preset you pick doesn't load until then either. Put
+  Stompbox on a track instead (seen on a Key 37, 2026-10-25 and 2026-10-26).
 - Model names are generic: "Overdrive 1", "Lead Stack", "4x12 Closed". The IR loader's impulse responses are
   "Amp 1" to "Amp 20", "Band 1" to "Band 70" and "Hall".
 
