@@ -19,8 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: sd88me/mpc-vst-plugins
-          ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+          repository: open-mpc/mpc-vst-plugins
+          ref: 8e266cec8abd3d780e331404209c3e8b8f699c5c
           path: mpc-vst-plugins
       - run: tests/run.sh
   device:
@@ -38,8 +38,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: sd88me/mpc-vst-plugins
-          ref: 37beeea8b94e42d3eac1022e0476ac66bc8c385c
+          repository: open-mpc/mpc-vst-plugins
+          ref: 8e266cec8abd3d780e331404209c3e8b8f699c5c
           path: mpc-vst-plugins
       - uses: docker/setup-qemu-action@v3
         with: { platforms: "${{ matrix.qemu }}" }

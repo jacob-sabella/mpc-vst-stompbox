@@ -128,9 +128,9 @@ MPC isn't possible yet.
 ## Installing
 
 There's no release yet. Once there is, it will be in the
-[MPC plugin catalog](https://sd88me.github.io/mpc-vst-plugins/) and on this repo's Releases page. Until then, build it
+[MPC plugin catalog](https://open-mpc.github.io/) and on this repo's Releases page. Until then, build it
 yourself (below) and install it like any other plugin from
-[mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins).
+[mpc-vst-plugins](https://github.com/open-mpc/mpc-vst-plugins).
 
 ## CPU
 
@@ -163,7 +163,7 @@ here is the glue that turns them into an MPC plugin:
 - `tools/gen_models.py` reads models.json and the fetched code and generates everything in `build/gen/`: a source file
   per module, the model table, the VST parameters, the skin layout, the factory presets and the impulse responses.
 - `tools/gx_bank.py` converts guitarix presets into Stompbox rigs.
-- `src/rack.cpp` is the rack itself, an [mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins) engine.
+- `src/rack.cpp` is the rack itself, an [mpc-vst-plugins](https://github.com/open-mpc/mpc-vst-plugins) engine.
   `src/host.cpp` runs a guitarix module or a GxPlugins LV2 plugin. `src/builtins.cpp` has the noise gate, the
   cabinet, preamp and presence convolvers, and the IR loader's FFT convolver.
 - `vst/params.lock` keeps the VST parameter order fixed, so Q-Link maps and automation in saved projects keep working
