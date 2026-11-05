@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: open-mpc/mpc-vst-plugins
-          ref: 8e266cec8abd3d780e331404209c3e8b8f699c5c
+          ref: a0dda4f8ea34aa3b5f13468b570bcbaf39dbd362
           path: mpc-vst-plugins
       - run: tests/run.sh
   device:
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: open-mpc/mpc-vst-plugins
-          ref: 8e266cec8abd3d780e331404209c3e8b8f699c5c
+          ref: a0dda4f8ea34aa3b5f13468b570bcbaf39dbd362
           path: mpc-vst-plugins
       - uses: docker/setup-qemu-action@v3
         with: { platforms: "${{ matrix.qemu }}" }
