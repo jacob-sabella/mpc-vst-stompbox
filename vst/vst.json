@@ -36,5 +36,73 @@
   "defines": {
     "HAS_DISPLAY_REV": 1,
     "PARAM_TEXT_MAX": 64
+  },
+  "sample_page": {
+    "dial": "preset",
+    "banks": [
+      {
+        "name": "AMP",
+        "knobs": [
+          "amp_k1",
+          "amp_k2",
+          "amp_k3"
+        ]
+      },
+      {
+        "name": "TONE",
+        "knobs": [
+          "tone_k1",
+          "tone_k2",
+          "tone_k3"
+        ]
+      },
+      {
+        "name": "LEVEL",
+        "knobs": [
+          "input",
+          "output",
+          "gate_k1"
+        ]
+      },
+      {
+        "name": "DELAY",
+        "knobs": [
+          "delay_k1",
+          "delay_k2",
+          "delay_k3"
+        ]
+      },
+      {
+        "name": "REVERB",
+        "knobs": [
+          "reverb_k1",
+          "reverb_k2",
+          "reverb_k3"
+        ]
+      }
+    ],
+    "lines": [
+      {
+        "key": "amp_model",
+        "label": true
+      },
+      {
+        "key": "tone_model",
+        "label": true
+      },
+      {
+        "key": "cab_model",
+        "label": true
+      },
+      {
+        "key": "delay_model",
+        "label": true
+      },
+      {
+        "key": "reverb_model",
+        "label": true
+      }
+    ],
+    "fps": 12
   }
 }
