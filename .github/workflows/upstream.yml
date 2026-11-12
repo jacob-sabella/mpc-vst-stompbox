@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: open-mpc/mpc-vst-plugins
-          ref: a0dda4f8ea34aa3b5f13468b570bcbaf39dbd362
+          ref: 0dc17120cd7e952e95eeecdd820ac9e495a75ee9
           path: mpc-vst-plugins
       - if: steps.up.outputs.moved != ''
         uses: docker/setup-qemu-action@v3
