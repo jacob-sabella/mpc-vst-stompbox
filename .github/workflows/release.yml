@@ -20,12 +20,12 @@ on:
 
 jobs:
   vst:
-    uses: open-mpc/mpc-vst-plugins/.github/workflows/vst-release.yml@0dc17120cd7e952e95eeecdd820ac9e495a75ee9
+    uses: open-mpc/mpc-vst-plugins/.github/workflows/vst-release.yml@8ace10a277784689c6d0e3281c0e8d6ddc14e220
     permissions: { contents: write }
     with:
       tag: stompbox-vst-v${{ inputs.version }}
       version: ${{ inputs.version }}
-      tools_ref: 0dc17120cd7e952e95eeecdd820ac9e495a75ee9
+      tools_ref: 8ace10a277784689c6d0e3281c0e8d6ddc14e220
       vst_dir: build/gen
       # bench.txt (tools/bench_rig.sh's result for the default rig, bench.sh -j) lives in vst/; the release reads it
       # from the generated folder
