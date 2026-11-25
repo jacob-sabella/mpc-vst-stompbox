@@ -104,5 +104,35 @@
       }
     ],
     "fps": 12
+  },
+  "knob_fx": {
+    "knobs": [
+      {
+        "key": "amp_k1",
+        "label": "Amp 1"
+      },
+      {
+        "key": "amp_k2",
+        "label": "Amp 2"
+      },
+      {
+        "key": "amp_k3",
+        "label": "Amp 3"
+      }
+    ],
+    "shift_knobs": [
+      {
+        "key": "tone_k1",
+        "label": "Tone 1"
+      },
+      {
+        "key": "tone_k2",
+        "label": "Tone 2"
+      },
+      {
+        "key": "tone_k3",
+        "label": "Tone 3"
+      }
+    ]
   }
 }
